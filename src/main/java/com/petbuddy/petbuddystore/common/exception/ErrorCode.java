@@ -12,7 +12,6 @@ public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_KEY(9998, "Uncategorized error", HttpStatus.BAD_REQUEST),
 
-    UNAUTHORIZED(1001, "You do not have permission to access", HttpStatus.FORBIDDEN),
     EMAIL_REQUIRED(1002, "Email is required", HttpStatus.BAD_REQUEST),
     INVALID_EMAIL(1003, "Email is invalid", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1004, "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
@@ -23,6 +22,25 @@ public enum ErrorCode {
     USER_NOT_EXISTED(1009, "User does not exists", HttpStatus.NOT_FOUND),
     INVALID_DOB_FORMAT(1010, "Date of birth must be in format dd-MM-yyyy", HttpStatus.BAD_REQUEST),
 
+    USER_NOT_VERIFIED(2001, "Please verify your email before logging in", HttpStatus.FORBIDDEN),
+    USER_INACTIVE(2002, "User is inactive", HttpStatus.FORBIDDEN),
+    USER_SUSPENDED(2003, "User has been suspended", HttpStatus.FORBIDDEN),
+    USER_DELETED(2004, "User has been deleted", HttpStatus.GONE),
+    UNAUTHENTICATED(2005, "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED(2006, "You do not have permission to access", HttpStatus.FORBIDDEN),
+
+    OTP_EXPIRED(3001, "OTP has expired", HttpStatus.BAD_REQUEST),
+    OTP_INVALID(3002, "OTP is invalid", HttpStatus.BAD_REQUEST),
+    OTP_MAX_ATTEMPT(3003, "Too many attempts. Try again later", HttpStatus.BAD_REQUEST),
+    OTP_RESEND_COOLDOWN(3004, "Please wait before requesting another OTP", HttpStatus.BAD_REQUEST),
+    OTP_RATE_LIMIT(3005, "Too many OTP requests", HttpStatus.BAD_REQUEST),
+    EMAIL_SEND_FAILED(3006, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
+    EMAIL_ALREADY_VERIFIED(3007, "Email has already verified", HttpStatus.BAD_REQUEST),
+    OTP_REQUIRED(3008, "Otp is required", HttpStatus.BAD_REQUEST),
+    PASSWORD_INCORRECT(3009, "Old password is incorrect", HttpStatus.BAD_REQUEST),
+    PASSWORD_CONFIRM_NOT_MATCH(3010, "Password confirmation does not match", HttpStatus.BAD_REQUEST),
+    PASSWORD_SAME_AS_OLD(3011, "New password must be different from old password", HttpStatus.BAD_REQUEST),
+    PASSWORD_REQUIRED(3012, "Password is required", HttpStatus.BAD_REQUEST),
 
     ;
 
