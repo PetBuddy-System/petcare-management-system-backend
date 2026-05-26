@@ -47,7 +47,19 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(4003, "Category not found", HttpStatus.NOT_FOUND),
     CATEGORY_HAS_PRODUCTS(4004, "Cannot delete category because it is linked to products", HttpStatus.BAD_REQUEST),
     CATEGORY_DELETED(4005, "Category has been deleted", HttpStatus.BAD_REQUEST),
-    CATEGORY_NOT_DELETED(4006, "Category is not deleted", HttpStatus.BAD_REQUEST),;
+    CATEGORY_NOT_DELETED(4006, "Category is not deleted", HttpStatus.BAD_REQUEST),
+    CATEGORY_INACTIVE(4007, "Category is inactive", HttpStatus.BAD_REQUEST),
+
+    PRODUCT_NAME_REQUIRED(5001, "Product name is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_PRICE_REQUIRED(5002, "Product price is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_PRICE_INVALID(5003, "Product price must be greater than 0", HttpStatus.BAD_REQUEST),
+    PRODUCT_STOCK_REQUIRED(5004, "Product stock quantity is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_STOCK_INVALID(5005, "Product stock quantity must be greater than or equal to 0", HttpStatus.BAD_REQUEST),
+    PRODUCT_EXISTED(5006, "Product already exists", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_FOUND(5007, "Product not found", HttpStatus.NOT_FOUND),
+    PRODUCT_DELETED(5008, "Product has been deleted", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_DELETED(5009, "Product is not deleted", HttpStatus.BAD_REQUEST),
+    CATEGORY_ID_REQUIRED(5010, "Category id is required", HttpStatus.BAD_REQUEST),;
 
     int code;
     String message;

@@ -32,8 +32,10 @@ public class Product {
     @Column(columnDefinition = "NVARCHAR(2000)")
     String description;
 
+    @Column(nullable = false)
     BigDecimal price;
 
+    @Column(nullable = false)
     Integer stockQuantity;
 
     String imageUrl;
@@ -41,15 +43,23 @@ public class Product {
     @Column(columnDefinition = "NVARCHAR(100)")
     String brandName;
 
-    Boolean status;
+    @Builder.Default
+    Boolean status = true;
+
+    @Builder.Default
+    Boolean deleted = false;
+
+    LocalDateTime deletedAt;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
     Category category;
 
+    @Builder.Default
     @OneToMany(mappedBy = "product")
     List<CartItem> cartItems = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "product")
     List<OrderItem> orderItems = new ArrayList<>();
 

@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, GET_ENDPOINTS).permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS_SWAGGER).permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
+                        .requestMatchers("/api/products/**").permitAll()
                         .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 ->

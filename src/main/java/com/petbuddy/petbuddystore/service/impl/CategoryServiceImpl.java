@@ -8,6 +8,7 @@ import com.petbuddy.petbuddystore.dto.response.CategoryResponse;
 import com.petbuddy.petbuddystore.mapper.CategoryMapper;
 import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.repository.CategoryRepository;
+import com.petbuddy.petbuddystore.repository.ProductRepository;
 import com.petbuddy.petbuddystore.service.CategoryService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
 
     CategoryRepository categoryRepository;
+    ProductRepository productRepository;
     CategoryMapper categoryMapper;
 
     @Override
@@ -113,13 +115,16 @@ public class CategoryServiceImpl implements CategoryService {
     public void softDeleteCategory(Long categoryId) {
         Category category = getCategoryEntityByIdAndNotDeleted(categoryId);
 
+        if (productRepository.existsByCategory_CategoryId(categoryId)) {
+            throw new AppException(ErrorCode.CATEGORY_HAS_PRODUCTS);
+        }
+
         category.setDeleted(true);
         category.setDeletedAt(LocalDateTime.now());
         category.setStatus(false);
 
         categoryRepository.save(category);
     }
-
     @Override
     public CategoryResponse restoreCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)

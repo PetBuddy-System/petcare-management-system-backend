@@ -62,7 +62,7 @@ public class CategoryController {
                 ApiResponse.success(categoryService.getActiveCategories())
         );
     }
-    @GetMapping("/all-category")
+    @GetMapping({"/management", "/admin"})
     @Operation(
             summary = "Get all categories for management",
             description = "Lấy toàn bộ danh mục sản phẩm, bao gồm cả active, inactive và deleted, để hiển thị cho quản lý."
