@@ -42,7 +42,12 @@ public enum ErrorCode {
     PASSWORD_SAME_AS_OLD(3011, "New password must be different from old password", HttpStatus.BAD_REQUEST),
     PASSWORD_REQUIRED(3012, "Password is required", HttpStatus.BAD_REQUEST),
 
-    ;
+    CATEGORY_NAME_REQUIRED(4001, "Category name is required", HttpStatus.BAD_REQUEST),
+    CATEGORY_EXISTED(4002, "Category already exists", HttpStatus.BAD_REQUEST),
+    CATEGORY_NOT_FOUND(4003, "Category not found", HttpStatus.NOT_FOUND),
+    CATEGORY_HAS_PRODUCTS(4004, "Cannot delete category because it is linked to products", HttpStatus.BAD_REQUEST),
+    CATEGORY_DELETED(4005, "Category has been deleted", HttpStatus.BAD_REQUEST),
+    CATEGORY_NOT_DELETED(4006, "Category is not deleted", HttpStatus.BAD_REQUEST),;
 
     int code;
     String message;
