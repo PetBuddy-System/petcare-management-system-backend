@@ -29,6 +29,8 @@ public class ProductCreationRequest {
 
     String imageUrl;
 
+    String imageKey;
+
     String brandName;
 
     @NotNull(message = "CATEGORY_ID_REQUIRED")

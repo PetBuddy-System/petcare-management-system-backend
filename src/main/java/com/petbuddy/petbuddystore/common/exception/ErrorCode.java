@@ -59,7 +59,8 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(5007, "Product not found", HttpStatus.NOT_FOUND),
     PRODUCT_DELETED(5008, "Product has been deleted", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_DELETED(5009, "Product is not deleted", HttpStatus.BAD_REQUEST),
-    CATEGORY_ID_REQUIRED(5010, "Category id is required", HttpStatus.BAD_REQUEST),;
+    CATEGORY_ID_REQUIRED(5010, "Category id is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_STATUS_REQUIRED(5011, "Product status is required", HttpStatus.BAD_REQUEST),;
 
     int code;
     String message;

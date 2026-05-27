@@ -20,6 +20,7 @@ public class ProductResponse {
     BigDecimal price;
     Integer stockQuantity;
     String imageUrl;
+    String imageKey;
     String brandName;
     Boolean status;
     Boolean deleted;

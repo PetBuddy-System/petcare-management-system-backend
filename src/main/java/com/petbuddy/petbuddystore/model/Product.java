@@ -1,6 +1,7 @@
 package com.petbuddy.petbuddystore.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,9 +37,14 @@ public class Product {
     BigDecimal price;
 
     @Column(nullable = false)
+    @Min(value = 0, message = "PRODUCT_STOCK_INVALID")
     Integer stockQuantity;
 
+    @Column(columnDefinition = "TEXT")
     String imageUrl;
+
+    @Column(name = "image_key")
+    String imageKey;
 
     @Column(columnDefinition = "NVARCHAR(100)")
     String brandName;

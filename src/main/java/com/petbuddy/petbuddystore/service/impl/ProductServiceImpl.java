@@ -46,8 +46,8 @@ public class ProductServiceImpl implements ProductService {
                         .price(request.getPrice())
                         .stockQuantity(request.getStockQuantity())
                         .imageUrl(request.getImageUrl())
+                        .imageKey(request.getImageKey())
                         .brandName(request.getBrandName())
-                        .categoryId(request.getCategoryId())
                         .build());
 
                 product.setCategory(category);
@@ -162,6 +162,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse updateProductStatus(Long productId, Boolean status) {
+        if (status == null) {
+            throw new AppException(ErrorCode.PRODUCT_STATUS_REQUIRED);
+        }
+
         Product product = getProductEntityByIdAndNotDeleted(productId);
 
         product.setStatus(status);
