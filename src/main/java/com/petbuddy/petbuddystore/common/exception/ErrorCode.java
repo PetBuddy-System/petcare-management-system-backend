@@ -60,7 +60,12 @@ public enum ErrorCode {
     PRODUCT_DELETED(5008, "Product has been deleted", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_DELETED(5009, "Product is not deleted", HttpStatus.BAD_REQUEST),
     CATEGORY_ID_REQUIRED(5010, "Category id is required", HttpStatus.BAD_REQUEST),
-    PRODUCT_STATUS_REQUIRED(5011, "Product status is required", HttpStatus.BAD_REQUEST),;
+    PRODUCT_STATUS_REQUIRED(5011, "Product status is required", HttpStatus.BAD_REQUEST),
+
+    CART_NOT_FOUND(6001, "Cart not found", HttpStatus.NOT_FOUND),
+    CART_ITEM_NOT_FOUND(6002, "Cart item not found", HttpStatus.NOT_FOUND),
+    QUANTITY_INVALID(6003, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
+    QUANTITY_REQUIRED(6004, "Quantity is required", HttpStatus.BAD_REQUEST),;
 
     int code;
     String message;

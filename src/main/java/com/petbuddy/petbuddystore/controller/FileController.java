@@ -17,6 +17,10 @@ import org.springframework.web.multipart.MultipartFile;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FileController {
 
+    //=============================================//
+    //AWS_S3_BUCKET=petbuddy-images-516232034948 (vo .env nha may bro)
+    //=============================================//
+
     StorageService storageService;
 
     @PostMapping(

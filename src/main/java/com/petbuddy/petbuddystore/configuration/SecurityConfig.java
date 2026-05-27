@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
                         .requestMatchers("/api/files/**").permitAll()
+                        .requestMatchers("/api/carts/**").permitAll()
                         .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 ->
