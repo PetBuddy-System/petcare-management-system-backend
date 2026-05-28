@@ -65,7 +65,15 @@ public enum ErrorCode {
     CART_NOT_FOUND(6001, "Cart not found", HttpStatus.NOT_FOUND),
     CART_ITEM_NOT_FOUND(6002, "Cart item not found", HttpStatus.NOT_FOUND),
     QUANTITY_INVALID(6003, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
-    QUANTITY_REQUIRED(6004, "Quantity is required", HttpStatus.BAD_REQUEST),;
+    QUANTITY_REQUIRED(6004, "Quantity is required", HttpStatus.BAD_REQUEST),
+
+    FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE(7003, "Only JPG, PNG, WEBP images are allowed", HttpStatus.BAD_REQUEST),
+    UPLOAD_FAILED(7004, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
+    IMAGE_SIZE_INVALID(7005, "Upload maximum 3 photos", HttpStatus.BAD_REQUEST),
+
+    ;
 
     int code;
     String message;

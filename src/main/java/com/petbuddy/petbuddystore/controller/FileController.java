@@ -2,7 +2,7 @@ package com.petbuddy.petbuddystore.controller;
 
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
 import com.petbuddy.petbuddystore.dto.response.FileUploadResponse;
-import com.petbuddy.petbuddystore.service.StorageService;
+import com.petbuddy.petbuddystore.service.FileService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,7 +21,7 @@ public class FileController {
     //AWS_S3_BUCKET=petbuddy-images-516232034948 (vo .env nha may bro)
     //=============================================//
 
-    StorageService storageService;
+    FileService fileService;
 
     @PostMapping(
             value = "/upload",
@@ -33,7 +33,7 @@ public class FileController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Upload image successfully",
-                        storageService.uploadImage(file)
+                        fileService.uploadImage(file)
                 )
         );
     }
