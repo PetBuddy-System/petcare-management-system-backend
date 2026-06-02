@@ -5,6 +5,7 @@ import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
 import com.petbuddy.petbuddystore.dto.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ProductService {
 
@@ -27,4 +28,6 @@ public interface ProductService {
     void softDeleteProduct(Long productId);
 
     ProductResponse restoreProduct(Long productId);
+
+    void importProducts(MultipartFile file);
 }

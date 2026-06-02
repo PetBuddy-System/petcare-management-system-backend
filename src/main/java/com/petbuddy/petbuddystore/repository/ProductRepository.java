@@ -1,13 +1,16 @@
 package com.petbuddy.petbuddystore.repository;
 
+import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByCategory_CategoryId(Long categoryId);
@@ -17,7 +20,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByDeletedFalse(Pageable pageable);
 
     Page<Product> findByStatusTrueAndDeletedFalse(Pageable pageable);
-
 
     Page<Product> findByNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(
             String keyword,

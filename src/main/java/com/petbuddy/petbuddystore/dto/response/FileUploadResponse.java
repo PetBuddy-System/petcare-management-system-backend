@@ -14,5 +14,4 @@ import static lombok.AccessLevel.PRIVATE;
 public class FileUploadResponse {
 
     String imageUrl;
-    String imageKey;
 }

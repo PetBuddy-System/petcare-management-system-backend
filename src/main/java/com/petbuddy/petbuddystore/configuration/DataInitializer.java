@@ -1,26 +1,30 @@
-package com.petbuddy.petbuddystore.initializer.components;
+package com.petbuddy.petbuddystore.configuration;
 
 import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-@Component
+@Configuration
 @RequiredArgsConstructor
-public class CategoryInitializer {
+public class DataInitializer implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
 
-    public void init() {
+    @Override
+    public void run(String... args) {
+        initCategories();
+    }
 
+    private void initCategories() {
         if (categoryRepository.count() > 0) {
             return;
         }
 
         List<Category> categories = List.of(
-
                 Category.builder()
                         .name("Dog Food")
                         .description("Food for dogs")
