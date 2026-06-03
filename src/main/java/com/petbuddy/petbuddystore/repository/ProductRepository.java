@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.repository;
 
+import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +20,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByDeletedFalse(Pageable pageable);
 
     Page<Product> findByStatusTrueAndDeletedFalse(Pageable pageable);
-
 
     Page<Product> findByNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(
             String keyword,

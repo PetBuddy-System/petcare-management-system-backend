@@ -3,21 +3,15 @@ package com.petbuddy.petbuddystore.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 import static lombok.AccessLevel.PRIVATE;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @FieldDefaults(level = PRIVATE)
-public class CartResponse {
+public class FileUploadResponse {
 
-    Long cartId;
-    String userId;
-    List<CartItemResponse> items;
-    BigDecimal totalAmount;
+    String imageUrl;
 }

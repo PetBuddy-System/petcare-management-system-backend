@@ -12,11 +12,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     Optional<Category> findByNameIgnoreCase(String name);
 
-    boolean existsByNameIgnoreCaseAndDeletedFalse(String name);
-
     List<Category> findByDeletedFalse();
 
     List<Category> findByStatusTrueAndDeletedFalse();
-
-    List<Category> findByDeletedTrue();
 }

@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -20,7 +21,6 @@ public class ProductResponse {
     BigDecimal price;
     Integer stockQuantity;
     String imageUrl;
-    String imageKey;
     String brandName;
     Boolean status;
     Boolean deleted;
@@ -31,4 +31,6 @@ public class ProductResponse {
 
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+
+    LocalDate expiryDate;
 }

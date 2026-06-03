@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +62,6 @@ public class Product {
     @JoinColumn(name = "category_id")
     Category category;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "product")
-    List<CartItem> cartItems = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "product")
@@ -75,4 +73,7 @@ public class Product {
 
     @UpdateTimestamp
     LocalDateTime updatedAt;
+
+    @Column(name = "expiry_date")
+    LocalDate expiryDate;
 }
