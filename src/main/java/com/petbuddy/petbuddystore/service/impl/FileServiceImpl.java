@@ -29,11 +29,10 @@ public class FileServiceImpl implements FileService {
     @Value("${aws.s3.bucket}")
     String bucketName;
 
-    @Override
-    public String uploadImage(MultipartFile file) {
+    private String uploadToS3(MultipartFile file, String folder) {
         validateFile(file);
         try {
-            String imageKey = "products/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String imageKey = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
             s3Client.putObject(PutObjectRequest.builder()
                             .bucket(bucketName)
                             .key(imageKey)
@@ -41,10 +40,21 @@ public class FileServiceImpl implements FileService {
                             .build(),
                     RequestBody.fromBytes(file.getBytes()));
             return "https://" + bucketName + ".s3.amazonaws.com/" + imageKey;
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error(e.getMessage());
             throw new AppException(ErrorCode.UPLOAD_FAILED);
         }
+    }
+
+    @Override
+    public String uploadProductImage(MultipartFile file) {
+        return uploadToS3(file, "products");
+
+    }
+
+    @Override
+    public String uploadPetImage(MultipartFile file) {
+        return uploadToS3(file, "pets");
     }
 
     @Override

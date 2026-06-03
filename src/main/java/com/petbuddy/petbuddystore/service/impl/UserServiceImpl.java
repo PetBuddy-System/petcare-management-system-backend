@@ -91,4 +91,10 @@ public class UserServiceImpl implements UserService {
         user.setStatus(request.getStatus());
         return userMapper.toUserResponse(userRepository.save(user));
     }
+
+    @Override
+    public User getUserEntityById(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    }
 }

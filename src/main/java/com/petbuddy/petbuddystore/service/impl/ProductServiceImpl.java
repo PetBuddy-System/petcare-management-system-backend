@@ -58,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
 
                 if (request.getImage() != null && !request.getImage().isEmpty()) {
 
-                    String newImageUrl = fileService.uploadImage(request.getImage());
+                    String newImageUrl = fileService.uploadProductImage(request.getImage());
 
                     if (product.getImageUrl() != null) {
                         fileService.deleteImage(product.getImageUrl());
@@ -88,7 +88,7 @@ public class ProductServiceImpl implements ProductService {
 
         try {
 
-            imageUrl = fileService.uploadImage(request.getImage());
+            imageUrl = fileService.uploadProductImage(request.getImage());
 
             Category category = getActiveCategoryById(request.getCategoryId());
 
@@ -208,7 +208,7 @@ public class ProductServiceImpl implements ProductService {
 
             String oldImageUrl = product.getImageUrl();
 
-            String newImageUrl = fileService.uploadImage(request.getImage());
+            String newImageUrl = fileService.uploadProductImage(request.getImage());
 
             product.setImageUrl(newImageUrl);
 

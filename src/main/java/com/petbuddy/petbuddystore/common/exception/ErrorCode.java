@@ -75,6 +75,8 @@ public enum ErrorCode {
     IMPORT_FAILED(7008, "Failed to import file. Please check the file format and data.", HttpStatus.BAD_REQUEST),
     INVALID_EXCEL_TEMPLATE(7009, "Invalid Excel template. Please use the provided template.", HttpStatus.BAD_REQUEST),
 
+    PET_NOT_EXISTED(8001, "Pet does not exist", HttpStatus.NOT_FOUND),
+
     ;
 
     int code;
