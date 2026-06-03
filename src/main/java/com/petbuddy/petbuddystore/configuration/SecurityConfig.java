@@ -47,8 +47,6 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_ENDPOINTS_SWAGGER).permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
-                        .requestMatchers("/api/files/**").permitAll()
                         .requestMatchers("/api/carts/**").permitAll()
                         .anyRequest().authenticated());
 
