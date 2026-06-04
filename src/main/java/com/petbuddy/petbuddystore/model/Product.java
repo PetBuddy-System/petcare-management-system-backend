@@ -62,7 +62,6 @@ public class Product {
     @JoinColumn(name = "category_id")
     Category category;
 
-
     @Builder.Default
     @OneToMany(mappedBy = "product")
     List<OrderItem> orderItems = new ArrayList<>();
