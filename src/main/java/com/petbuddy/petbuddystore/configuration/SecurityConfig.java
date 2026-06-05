@@ -60,7 +60,8 @@ public class SecurityConfig {
             "/api/categories/{categoryId}/active",
             "/api/categories/{categoryId}/inactive",
             "/api/categories/{categoryId}/soft-deleted",
-            "/api/categories/{categoryId}/restore"
+            "/api/categories/{categoryId}/restore",
+            "/api/products/{productId}"
     };
 
     // TODO: Temporary public endpoints for Swagger testing only.
@@ -118,7 +119,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(List.of("http://localhost:5173"));
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(false);
 

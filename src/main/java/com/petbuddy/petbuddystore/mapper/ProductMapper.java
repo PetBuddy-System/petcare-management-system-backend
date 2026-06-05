@@ -2,6 +2,7 @@ package com.petbuddy.petbuddystore.mapper;
 
 import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductResponse;
 import com.petbuddy.petbuddystore.model.Product;
 import org.mapstruct.*;
@@ -20,6 +21,10 @@ public interface ProductMapper {
     @Mapping(target = "categoryId", source = "category.categoryId")
     @Mapping(target = "categoryName", source = "category.name")
     ProductResponse toProductResponse(Product product);
+
+    @Mapping(target = "categoryName", source = "category.name")
+    @Mapping(target = "totalStock", ignore = true)
+    ProductPublicResponse toPublicResponse(Product product);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "imageUrl", ignore = true)
