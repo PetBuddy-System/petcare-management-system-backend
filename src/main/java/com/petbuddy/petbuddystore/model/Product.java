@@ -65,7 +65,7 @@ public class Product {
 
     @Builder.Default
     @OneToMany(mappedBy = "product")
-    List<OrderItem> orderItems = new ArrayList<>();
+    List<OrderDetail> orderDetails = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)

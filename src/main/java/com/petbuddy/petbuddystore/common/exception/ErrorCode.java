@@ -65,6 +65,12 @@ public enum ErrorCode {
     EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
 
+    CART_EMPTY(5001, "Cart is empty", HttpStatus.BAD_REQUEST),
+    CART_ITEM_NOT_FOUND(5002, "Cart item not found", HttpStatus.NOT_FOUND),
+    PRODUCT_OUT_OF_STOCK(5003, "Product is out of stock", HttpStatus.BAD_REQUEST),
+    INVALID_QUANTITY(5004, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
+    CART_PRODUCT_ALREADY_EXISTS(5005, "Product already exists in cart", HttpStatus.BAD_REQUEST),
+
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
     INVALID_FILE_TYPE(7003, "Only JPG, PNG, WEBP images are allowed", HttpStatus.BAD_REQUEST),
