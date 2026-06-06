@@ -13,6 +13,8 @@ import com.petbuddy.petbuddystore.session.CartSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
@@ -25,6 +27,12 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void addToCart(AddToCartRequest request) {
+
+        String userId = cartSession.getUserId();
+
+        if (userId == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
         Product product = productRepository
                 .findById(request.getProductId())
@@ -54,14 +62,20 @@ public class CartServiceImpl implements CartService {
                 CartItemSession.builder()
                         .productId(product.getProductId())
                         .productName(product.getName())
-                        .unitPrice(product.getPrice())
+                        .price(product.getPrice())
                         .quantity(request.getQuantity())
+                        .subtotal(product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
                         .build()
         );
     }
 
     @Override
     public CartResponse getCart() {
+        String userId = cartSession.getUserId();
+
+        if (userId == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
         return cartMapper.toCartResponse(cartSession);
     }

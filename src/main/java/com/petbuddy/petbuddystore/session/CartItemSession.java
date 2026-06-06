@@ -9,12 +9,13 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class CartItemSession {
     private Long productId;
 
     private String productName;
 
-    private BigDecimal unitPrice;
+    private BigDecimal price;
 
     private Integer quantity;
 
