@@ -64,12 +64,15 @@ public enum ErrorCode {
     PRODUCT_IMAGE_REQUIRED(4212, "Product image is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
+    PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
+
 
     CART_EMPTY(5001, "Cart is empty", HttpStatus.BAD_REQUEST),
     CART_ITEM_NOT_FOUND(5002, "Cart item not found", HttpStatus.NOT_FOUND),
-    PRODUCT_OUT_OF_STOCK(5003, "Product is out of stock", HttpStatus.BAD_REQUEST),
-    INVALID_QUANTITY(5004, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
-    CART_PRODUCT_ALREADY_EXISTS(5005, "Product already exists in cart", HttpStatus.BAD_REQUEST),
+    INVALID_QUANTITY(5003, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
+
+    ORDER_NOT_FOUND(6001, "Order not found", HttpStatus.NOT_FOUND),
+    INVALID_ORDER_STATUS(6002, "Invalid order status", HttpStatus.BAD_REQUEST),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
@@ -82,10 +85,7 @@ public enum ErrorCode {
     INVALID_EXCEL_TEMPLATE(7009, "Invalid Excel template. Please use the provided template.", HttpStatus.BAD_REQUEST),
 
     PET_NOT_EXISTED(8001, "Pet does not exist", HttpStatus.NOT_FOUND),
-    CAGE_EXISTED(8002, "Cage has already existed", HttpStatus.BAD_REQUEST),
-    CAGE_NOT_EXISTED(8003, "Cage does not exist", HttpStatus.NOT_FOUND),
-    BLOG_EXISTED(8004, "Blog has already existed", HttpStatus.BAD_REQUEST),
-    BLOG_NOT_EXISTED(8005, "Blog does not exist", HttpStatus.NOT_FOUND),
+
     ;
 
     int code;

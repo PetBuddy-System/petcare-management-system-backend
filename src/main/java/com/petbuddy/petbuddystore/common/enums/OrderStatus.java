@@ -3,9 +3,10 @@ package com.petbuddy.petbuddystore.common.enums;
 public enum OrderStatus {
     PENDING,
     CONFIRMED,
+    PICKING,
+    PACKED,
     SHIPPING,
-    CANCELLED,
     DELIVERED,
     COMPLETED,
-    CANCELED,
+    CANCELED
 }

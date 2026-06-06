@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.model;
 
+import com.petbuddy.petbuddystore.common.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -61,6 +62,9 @@ public class Order {
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     Payment payment;
+
+    @Enumerated(EnumType.STRING)
+    OrderStatus status;
 
     @Column(name = "cancelled_at")
     LocalDateTime cancelledAt;

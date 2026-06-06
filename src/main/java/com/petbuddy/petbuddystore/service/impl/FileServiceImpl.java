@@ -58,11 +58,6 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public String uploadBlogImage(MultipartFile file) {
-        return uploadToS3(file, "blogs");
-    }
-
-    @Override
     public String uploadImage(byte[] bytes, String fileName, String contentType) {
         validateImageBytes(bytes, contentType);
 

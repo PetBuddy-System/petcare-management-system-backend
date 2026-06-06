@@ -1,12 +1,14 @@
 package com.petbuddy.petbuddystore.repository;
 
+import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,11 +17,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByCategory_CategoryId(Long categoryId);
 
-    List<Product> findByNameIgnoreCase(String name);
-
-    Optional<Product> findByNameIgnoreCaseAndExpiryDate(String name, LocalDate expiryDate);
-
-    Optional<Product> findFirstByNameIgnoreCaseAndImageUrlIsNotNull(String name);
+    Optional<Product> findByNameIgnoreCase(String name);
 
     Page<Product> findByDeletedFalse(Pageable pageable);
 
@@ -50,4 +48,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             String keyword,
             Pageable pageable
     );
+
+    @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM Product p WHERE p.name = :name AND p.deleted = false")
+    int findTotalStockByName(@Param("name") String name);
+    List<Product> findByNameAndDeletedFalseOrderByExpiryDateAsc(String name);
 }

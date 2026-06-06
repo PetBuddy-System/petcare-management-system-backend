@@ -2,7 +2,6 @@ package com.petbuddy.petbuddystore.service;
 
 import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
-import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,11 +13,11 @@ public interface ProductService {
 
     Page<ProductResponse> getAllProducts(String keyword, Pageable pageable);
 
-    Page<ProductPublicResponse> getActiveProducts(String keyword, Pageable pageable);
+    Page<ProductResponse> getActiveProducts(String keyword, Pageable pageable);
 
     Page<ProductResponse> getAllProductsForManagement(String keyword, Pageable pageable);
 
-    Page<ProductPublicResponse> getProductsByCategory(Long categoryId, String keyword, Pageable pageable);
+    Page<ProductResponse> getProductsByCategory(Long categoryId, String keyword, Pageable pageable);
 
     ProductResponse getProductById(Long productId);
 
