@@ -44,9 +44,6 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     String imageUrl;
 
-    @Column(name = "image_key")
-    String imageKey;
-
     @Column(columnDefinition = "NVARCHAR(100)")
     String brandName;
 
@@ -61,7 +58,6 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "category_id")
     Category category;
-
 
     @Builder.Default
     @OneToMany(mappedBy = "product")

@@ -80,6 +80,10 @@ public enum ErrorCode {
     CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
 
 
+    CAGE_EXISTED(8002, "Cage has already existed", HttpStatus.BAD_REQUEST),
+    CAGE_NOT_EXISTED(8003, "Cage does not exist", HttpStatus.NOT_FOUND),
+    BLOG_EXISTED(8004, "Blog has already existed", HttpStatus.BAD_REQUEST),
+    BLOG_NOT_EXISTED(8005, "Blog does not exist", HttpStatus.NOT_FOUND),
     ;
 
     int code;

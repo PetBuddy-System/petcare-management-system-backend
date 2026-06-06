@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.controller;
 
+import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
@@ -86,7 +87,7 @@ public class ProductController {
     @Operation(
             summary = "Get active products",
             description = "Lấy danh sách sản phẩm đang hoạt động và chưa bị xóa.")
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getActiveProducts(
+    public ResponseEntity<ApiResponse<Page<ProductPublicResponse>>> getActiveProducts(
             @RequestParam(required = false) String keyword,
             Pageable pageable) {
         return ResponseEntity.ok(
@@ -110,7 +111,7 @@ public class ProductController {
     @Operation(
             summary = "Get products by category",
             description = "Lấy danh sách sản phẩm active theo category.")
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProductsByCategory(
+    public ResponseEntity<ApiResponse<Page<ProductPublicResponse>>> getProductsByCategory(
             @PathVariable Long categoryId,
             @RequestParam(required = false) String keyword,
             Pageable pageable) {
