@@ -77,6 +77,9 @@ public enum ErrorCode {
 
     PET_NOT_EXISTED(8001, "Pet does not exist", HttpStatus.NOT_FOUND),
 
+    CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
+
+
     ;
 
     int code;
