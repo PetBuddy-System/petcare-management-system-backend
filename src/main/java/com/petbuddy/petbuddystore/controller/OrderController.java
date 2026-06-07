@@ -9,8 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +34,12 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(
+            @ParameterObject
+            @PageableDefault(
+            sort = "createdAt",
+            direction = Sort.Direction.DESC
+    ) Pageable pageable) {
         return ResponseEntity.ok(
                 ApiResponse.success("Orders retrieved successfully", orderService.getOrder(pageable)));
     }

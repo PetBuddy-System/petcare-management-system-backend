@@ -8,7 +8,7 @@ public interface CartService {
 
     CartResponse getCart();
 
-    void removeItem(Integer productId);
+    void removeItem(Long productId);
 
     void clearCart();
 }

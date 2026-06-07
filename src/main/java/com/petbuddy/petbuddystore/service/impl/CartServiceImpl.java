@@ -10,29 +10,28 @@ import com.petbuddy.petbuddystore.repository.ProductRepository;
 import com.petbuddy.petbuddystore.service.CartService;
 import com.petbuddy.petbuddystore.session.CartItemSession;
 import com.petbuddy.petbuddystore.session.CartSession;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CartServiceImpl implements CartService {
 
-    private final CartSession cartSession;
+    CartSession cartSession;
 
-    private final ProductRepository productRepository;
+    ProductRepository productRepository;
 
-    private final CartMapper cartMapper;
+    CartMapper cartMapper;
 
     @Override
     public void addToCart(AddToCartRequest request) {
 
-        String userId = cartSession.getUserId();
-
-        if (userId == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+       checkLogin();
 
         Product product = productRepository
                 .findById(request.getProductId())
@@ -71,17 +70,15 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponse getCart() {
-        String userId = cartSession.getUserId();
-
-        if (userId == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+        checkLogin();
 
         return cartMapper.toCartResponse(cartSession);
     }
 
     @Override
-    public void removeItem(Integer productId) {
+    public void removeItem(Long productId) {
+
+        checkLogin();
 
         cartSession.getItems()
                 .removeIf(item ->
@@ -91,7 +88,15 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void clearCart() {
-
         cartSession.getItems().clear();
+    }
+
+    private void checkLogin() {
+        String userId = cartSession.getUserId();
+
+        if (userId == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
     }
 }

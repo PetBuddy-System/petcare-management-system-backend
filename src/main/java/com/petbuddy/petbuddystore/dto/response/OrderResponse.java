@@ -21,5 +21,5 @@ public class OrderResponse {
 
      BigDecimal finalAmount;
 
-     LocalDateTime createAt;
+     LocalDateTime createdAt;
 }

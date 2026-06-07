@@ -20,7 +20,7 @@ public class CartController {
 
     private final CartService cartService;
 
-    @PostMapping("/")
+    @PostMapping
     @Operation(description = "Thêm sản phẩm vào giỏ hàng")
     public ResponseEntity<ApiResponse<Void>> addToCart(
             @RequestBody @Valid AddToCartRequest request) {
@@ -50,7 +50,7 @@ public class CartController {
     @Operation(description = "Remove product from cart")
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<ApiResponse<Void>> removeItem(
-            @PathVariable Integer productId) {
+            @PathVariable Long productId) {
 
         cartService.removeItem(productId);
 
@@ -75,11 +75,4 @@ public class CartController {
                 )
         );
     }
-
-    @GetMapping("/debug")
-    public String debug(HttpSession session){
-
-        return session.getId();
-    }
-
 }

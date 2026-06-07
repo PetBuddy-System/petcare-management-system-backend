@@ -18,7 +18,9 @@ import com.petbuddy.petbuddystore.repository.UserRepository;
 import com.petbuddy.petbuddystore.service.CartService;
 import com.petbuddy.petbuddystore.service.OrderService;
 import jakarta.transaction.Transactional;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -35,6 +37,7 @@ import java.util.Random;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderServiceImpl implements OrderService {
 
     OrderRepository orderRepository;
@@ -65,6 +68,7 @@ public class OrderServiceImpl implements OrderService {
                  .address(request.getAddress())
                  .note(request.getNote())
                  .status(OrderStatus.PENDING)
+                 .createdAt(LocalDateTime.now())
                  .build();
 
          List<OrderDetail> orderDetails = new ArrayList<>();
@@ -160,17 +164,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Page<OrderResponse> getOrder(Pageable pageable) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getName().equals("anonymousUser")) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = getCurrentUser();
 
         Page<Order> orders = orderRepository.findByUser_UserIdOrderByCreatedAtDesc(user.getUserId(), pageable);
 
@@ -225,12 +219,19 @@ public class OrderServiceImpl implements OrderService {
 
     private User getCurrentUser() {
 
-        String email = SecurityContextHolder
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName().equals("anonymousUser")) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String userId = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        return userRepository.findByEmail(email)
+        return userRepository.findById(userId)
                 .orElseThrow(() ->
                         new AppException(
                                 ErrorCode.USER_NOT_EXISTED));
