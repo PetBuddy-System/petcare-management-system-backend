@@ -17,11 +17,9 @@ public class OpenApiConfig {
                         .title("Pet Buddy API")
                         .description("API for caring and managing pets")
                         .version("v1.0.0"))
-
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
-                        .addSecuritySchemes("bearerAuth",
-                                new SecurityScheme()
+                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
                                         .name("Authorization")
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
