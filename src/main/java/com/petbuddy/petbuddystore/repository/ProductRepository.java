@@ -51,5 +51,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM Product p WHERE p.name = :name AND p.deleted = false")
     int findTotalStockByName(@Param("name") String name);
-    List<Product> findByNameAndDeletedFalseOrderByExpiryDateAsc(String name);
+    List<Product> findByNameAndStockQuantityGreaterThanAndDeletedFalseOrderByExpiryDateAsc(String name, Integer quantity);
 }

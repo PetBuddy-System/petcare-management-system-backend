@@ -6,6 +6,7 @@ import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.request.CreateOrderRequest;
 import com.petbuddy.petbuddystore.dto.response.CartItemResponse;
 import com.petbuddy.petbuddystore.dto.response.OrderResponse;
+import com.petbuddy.petbuddystore.dto.response.PickingItemResponse;
 import com.petbuddy.petbuddystore.dto.response.StaffOrderResponse;
 import com.petbuddy.petbuddystore.mapper.OrderMapper;
 import com.petbuddy.petbuddystore.model.Order;
@@ -104,61 +105,100 @@ public class OrderServiceImpl implements OrderService {
          order.setOrderDetails(orderDetails);
          order.setTotalAmount(total);
          order.setFinalAmount(total);
-
          orderRepository.save(order);
-
          cartService.clearCart();
-
          return orderMapper.toOrderResponse(order);
      }
 
     @Override
     public void confirmOrder(Long orderId){
-
-        Order order =
-                orderRepository
-                        .findById(orderId)
-                        .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
+        checkLogin();
+        Order order = findOrder(orderId);
         if(order.getStatus() != OrderStatus.PENDING){
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
-
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
     }
 
     @Override
     public void startPicking(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                        .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
+        checkLogin();
+        Order order = findOrder(orderId);
         if(order.getStatus() != OrderStatus.CONFIRMED){
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
-
-        for(OrderDetail item : order.getOrderDetails()){
-            pickByFEFO(item.getProductName(), item.getQuantity());
-        }
-
         order.setStatus(OrderStatus.PICKING);
+        orderRepository.save(order);
     }
 
     @Override
-    public void shipOrder(Long orderId){
+    public List<PickingItemResponse> getPickingList(Long orderId) {
 
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
+        checkLogin();
+        Order order = findOrder(orderId);
         if(order.getStatus() != OrderStatus.PICKING){
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
 
+        return buildPickingList(order);
+    }
+
+    @Override
+    public void shipOrder(Long orderId){
+        checkLogin();
+        Order order = findOrder(orderId);
+        if(order.getStatus() != OrderStatus.PICKING){
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        for(OrderDetail detail : order.getOrderDetails()){
+
+            List<PickingItemResponse> pickingItems = calculatePickingItems(
+                            detail.getProductName(),
+                            detail.getQuantity());
+
+            for(PickingItemResponse item : pickingItems){
+
+                Product product = productRepository.findById(item.getProductId())
+                                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+                product.setStockQuantity(product.getStockQuantity() - item.getQuantityToPick()
+                );
+
+                productRepository.save(product);
+            }
+        }
+
         order.setStatus(OrderStatus.SHIPPING);
+        orderRepository.save(order);
+    }
+
+    @Override
+    public void deliveredOrder(Long orderId) {
+        checkLogin();
+        Order order = findOrder(orderId);
+        if(order.getStatus() != OrderStatus.SHIPPING){
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        order.setStatus(OrderStatus.DELIVERED);
+        orderRepository.save(order);
+    }
+
+    @Override
+    public void completedOrder(Long orderId) {
+        checkLogin();
+        Order order = findOrder(orderId);
+        if(order.getStatus() != OrderStatus.DELIVERED){
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+        order.setStatus(OrderStatus.COMPLETED);
+        orderRepository.save(order);
     }
 
     @Override
     public void cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        Order order = findOrder(orderId);
         order.setStatus(OrderStatus.CANCELED);
     }
 
@@ -173,43 +213,17 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Page<StaffOrderResponse> getAllOrder(Pageable pageable) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getName().equals("anonymousUser")) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
+        checkLogin();
 
         Page<Order> order = orderRepository.findAll(pageable);
         return order.map(orderMapper::toStaffOrderResponse);
     }
 
-    private void pickByFEFO(String productName, int quantity){
-
-        List<Product> lots = productRepository.findByNameAndDeletedFalseOrderByExpiryDateAsc(productName);
-
-        int remain = quantity;
-
-        for(Product lot : lots){
-
-            if(lot.getStockQuantity() <= 0)
-                continue;
-
-            int picked = Math.min(remain, lot.getStockQuantity());
-
-            lot.setStockQuantity(lot.getStockQuantity() - picked);
-
-            remain -= picked;
-
-            productRepository.save(lot);
-
-            if(remain == 0)
-                break;
-        }
-
-        if(remain > 0){
-            throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
-        }
+    @Override
+    public OrderResponse getOrder(Long orderId) {
+        getCurrentUser();
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toOrderResponse(order);
     }
 
     private String generateOrderCode() {
@@ -235,5 +249,72 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() ->
                         new AppException(
                                 ErrorCode.USER_NOT_EXISTED));
+    }
+
+    private void checkLogin(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName().equals("anonymousUser")) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    private Order findOrder(Long orderId){
+        return orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new AppException(ErrorCode.ORDER_NOT_FOUND));
+    }
+
+    private List<PickingItemResponse> buildPickingList(Order order){
+
+        List<PickingItemResponse> result = new ArrayList<>();
+
+        for(OrderDetail detail : order.getOrderDetails()) {
+
+            result.addAll(
+                    calculatePickingItems(
+                            detail.getProductName(),
+                            detail.getQuantity()
+                    )
+            );
+        }
+
+        return result;
+    }
+
+    private List<PickingItemResponse> calculatePickingItems(String productName, int quantity){
+        List<Product> batches = productRepository
+                        .findByNameAndStockQuantityGreaterThanAndDeletedFalseOrderByExpiryDateAsc(productName, 0);
+
+        int remaining = quantity;
+
+        List<PickingItemResponse> result = new ArrayList<>();
+
+        for(Product batch : batches){
+
+            if(remaining <= 0){
+                break;
+            }
+
+            int picked = Math.min(batch.getStockQuantity(), remaining);
+
+            result.add(
+                    PickingItemResponse.builder()
+                            .productId(batch.getProductId())
+                            .name(batch.getName())
+                            .expiryDate(batch.getExpiryDate())
+                            .quantityToPick(picked)
+                            .build()
+            );
+
+            remaining -= picked;
+        }
+
+        if(remaining > 0){
+            throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        }
+
+        return result;
     }
 }

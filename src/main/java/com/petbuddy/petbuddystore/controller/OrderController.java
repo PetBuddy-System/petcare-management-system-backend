@@ -44,6 +44,11 @@ public class OrderController {
                 ApiResponse.success("Orders retrieved successfully", orderService.getOrder(pageable)));
     }
 
+    @GetMapping("/id")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@RequestParam long id) {
+        return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", orderService.getOrder(id)));
+    }
+
     @PreAuthorize("hasRole('STAFF')")
     @PutMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<Void>> confirmOrder(@PathVariable Long id){
@@ -60,11 +65,30 @@ public class OrderController {
     }
 
     @PreAuthorize("hasRole('STAFF')")
+    @GetMapping("/{id}/picking-list")
+    public ResponseEntity<ApiResponse<?>> getPickingList(@PathVariable Long id){
+        return ResponseEntity.ok(ApiResponse.success("Picking list retrieved successfully", orderService.getPickingList(id)));
+    }
+
+    @PreAuthorize("hasRole('STAFF')")
     @PutMapping("/{id}/shipping")
     public ResponseEntity<ApiResponse<Void>> shipOrder(@PathVariable Long id){
 
         orderService.shipOrder(id);
         return ResponseEntity.ok(ApiResponse.success("Order shipped", null));
+    }
+
+    @PreAuthorize("hasRole('STAFF')")
+    @PutMapping("/{id}/delivered")
+    public ResponseEntity<ApiResponse<Void>> deliverOrder(@PathVariable Long id){
+        orderService.deliveredOrder(id);
+        return ResponseEntity.ok(ApiResponse.success("Order delivered", null));
+    }
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PutMapping("/{id}/completed")
+    public ResponseEntity<ApiResponse<Void>> completedOrder(@PathVariable Long id){
+        orderService.completedOrder(id);
+        return ResponseEntity.ok(ApiResponse.success("Order completed", null));
     }
 
     @PreAuthorize("hasRole('STAFF')")
@@ -74,8 +98,8 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Order cancelled", null));
     }
 
-    @GetMapping("/get-all")
     @PreAuthorize("hasRole('STAFF')")
+    @GetMapping("/get-all")
     public ResponseEntity<ApiResponse<Page<StaffOrderResponse>>> getAllOrders(Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orderService.getAllOrder(pageable)));
     }

@@ -73,6 +73,9 @@ public enum ErrorCode {
 
     ORDER_NOT_FOUND(6001, "Order not found", HttpStatus.NOT_FOUND),
     INVALID_ORDER_STATUS(6002, "Invalid order status", HttpStatus.BAD_REQUEST),
+    PICKING_LIST_NOT_FOUND(6003, "Picking list not found",HttpStatus.NOT_FOUND),
+    PICKING_ALREADY_CREATED(6004, "Picking list already created", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_STOCK(6005, "Insufficient stock",HttpStatus.BAD_REQUEST),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),

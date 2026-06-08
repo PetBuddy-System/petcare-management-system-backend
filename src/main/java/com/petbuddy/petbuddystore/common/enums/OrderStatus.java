@@ -4,7 +4,6 @@ public enum OrderStatus {
     PENDING,
     CONFIRMED,
     PICKING,
-    PACKED,
     SHIPPING,
     DELIVERED,
     COMPLETED,
