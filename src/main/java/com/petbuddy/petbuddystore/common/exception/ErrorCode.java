@@ -88,14 +88,17 @@ public enum ErrorCode {
     INVALID_EXCEL_TEMPLATE(7009, "Invalid Excel template. Please use the provided template.", HttpStatus.BAD_REQUEST),
 
     PET_NOT_EXISTED(8001, "Pet does not exist", HttpStatus.NOT_FOUND),
-
-    CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
-
-
     CAGE_EXISTED(8002, "Cage has already existed", HttpStatus.BAD_REQUEST),
     CAGE_NOT_EXISTED(8003, "Cage does not exist", HttpStatus.NOT_FOUND),
     BLOG_EXISTED(8004, "Blog has already existed", HttpStatus.BAD_REQUEST),
     BLOG_NOT_EXISTED(8005, "Blog does not exist", HttpStatus.NOT_FOUND),
+
+    CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
+    USER_NOT_STAFF(9002, "User is not staff", HttpStatus.FORBIDDEN),
+    INVALID_WORKING_TIME(9003, "Working time is invalid", HttpStatus.BAD_REQUEST),
+    SCHEDULE_NOT_FOUND(9004, "Staff schedule not found", HttpStatus.NOT_FOUND),
+    CANNOT_UPDATE(9005, "Cannot update schedule started", HttpStatus.BAD_REQUEST),
+
     ;
 
     int code;
