@@ -51,7 +51,9 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public StaffScheduleResponse getStaffScheduleById(String scheduleId) {
-        return null;
+        StaffSchedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+        return scheduleMapper.toStaffScheduleResponse(schedule);
     }
 
     @Override
