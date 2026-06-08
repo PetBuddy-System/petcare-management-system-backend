@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class CartController {
 
     private final CartService cartService;
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping
     @Operation(description = "Thêm sản phẩm vào giỏ hàng")
     public ResponseEntity<ApiResponse<Void>> addToCart(
@@ -35,6 +37,7 @@ public class CartController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(description = "Get current cart")
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart() {
@@ -47,6 +50,7 @@ public class CartController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(description = "Remove product from cart")
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<ApiResponse<Void>> removeItem(
@@ -62,6 +66,7 @@ public class CartController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(description = "Clear cart")
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> clearCart() {

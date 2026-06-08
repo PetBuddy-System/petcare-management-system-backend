@@ -1,12 +1,12 @@
 package com.petbuddy.petbuddystore.repository;
 
-import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.time.LocalDate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,7 +17,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByCategory_CategoryId(Long categoryId);
 
-    Optional<Product> findByNameIgnoreCase(String name);
+    List<Product> findByNameIgnoreCase(String name);
+
+    Optional<Product> findByNameIgnoreCaseAndExpiryDate(String name, LocalDate expiryDate);
+
+    Optional<Product> findFirstByNameIgnoreCaseAndImageUrlIsNotNull(String name);
 
     Page<Product> findByDeletedFalse(Pageable pageable);
 
