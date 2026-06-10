@@ -20,6 +20,7 @@ import com.petbuddy.petbuddystore.repository.UserRepository;
 import com.petbuddy.petbuddystore.service.AuthenticationService;
 import com.petbuddy.petbuddystore.service.EmailService;
 import com.petbuddy.petbuddystore.service.OtpService;
+import com.petbuddy.petbuddystore.session.CartSession;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -49,6 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     InvalidatedTokenRepository invalidatedTokenRepository;
     OtpService otpService;
     EmailService emailService;
+    CartSession cartSession;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -103,6 +105,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         var accessToken = generateAccessToken(user);
         var refreshToken = generateRefreshToken(user);
+        cartSession.initialize(user.getUserId());
         return AuthenticationResponse.builder()
                 .authenticated(true)
                 .userResponse(userMapper.toUserResponse(user))
@@ -156,6 +159,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             log.info("Token already expired");
         }
 
+        cartSession.clear();
     }
 
     @Override

@@ -45,6 +45,7 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     String imageUrl;
 
+
     @Column(columnDefinition = "NVARCHAR(100)")
     String brandName;
 
@@ -62,7 +63,7 @@ public class Product {
 
     @Builder.Default
     @OneToMany(mappedBy = "product")
-    List<OrderItem> orderItems = new ArrayList<>();
+    List<OrderDetail> orderDetails = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)

@@ -5,21 +5,22 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "order_items")
+@Table(name = "order_detail")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderItem {
+public class OrderDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "order_item_id")
-    Long orderItemId;
+    @Column(name = "order_detail_id")
+    Long orderDetailId;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
@@ -39,4 +40,6 @@ public class OrderItem {
     Integer quantity;
 
     BigDecimal totalPrice;
+
+    LocalDateTime createdAt;
 }

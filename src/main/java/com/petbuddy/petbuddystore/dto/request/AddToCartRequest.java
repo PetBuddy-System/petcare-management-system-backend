@@ -3,14 +3,14 @@ package com.petbuddy.petbuddystore.dto.request;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class BlogUpdateRequest {
-    String title;
-    String label;
-    String snippet;
-    String content;
+public class AddToCartRequest {
+    private Long productId;
+
+    private Integer quantity;
 }

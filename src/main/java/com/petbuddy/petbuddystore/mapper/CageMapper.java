@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.mapper;
 
+
 import com.petbuddy.petbuddystore.dto.request.CageCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.CageUpdateRequest;
 import com.petbuddy.petbuddystore.dto.response.CageResponse;

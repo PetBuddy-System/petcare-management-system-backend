@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.model;
 
+import com.petbuddy.petbuddystore.common.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -33,38 +34,40 @@ public class Order {
     @JoinColumn(name = "user_id")
     User user;
 
+    @ManyToOne
+    @JoinColumn(name = "voucher_id")
+    Voucher voucher;
+
     @Column(columnDefinition = "NVARCHAR(255)")
     String recipientName;
 
     String phoneNumber;
 
-    @Column(columnDefinition = "NVARCHAR(100)")
-    String province;
-
-    @Column(columnDefinition = "NVARCHAR(100)")
-    String district;
-
-    @Column(columnDefinition = "NVARCHAR(100)")
-    String ward;
-
-    @Column(columnDefinition = "NVARCHAR(500)")
-    String detailAddress;
+    @Column(columnDefinition = "NVARCHAR(255)")
+    String address;
 
     BigDecimal shippingFee;
 
     BigDecimal totalAmount;
+
+    BigDecimal discountAmount;
 
     BigDecimal finalAmount;
 
     @Column(columnDefinition = "NVARCHAR(500)")
     String note;
 
-    @ManyToOne
-    @JoinColumn(name = "assigned_staff_id")
-    User assignedStaff;
-
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<OrderItem> orderItems = new ArrayList<>();
+    List<OrderDetail> orderDetails = new ArrayList<>();
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    Payment payment;
+
+    @Enumerated(EnumType.STRING)
+    OrderStatus status;
+
+    @Column(name = "cancelled_at")
+    LocalDateTime cancelledAt;
 
     @CreationTimestamp
     @Column(updatable = false)

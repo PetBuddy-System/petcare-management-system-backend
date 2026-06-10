@@ -1,10 +1,9 @@
 package com.petbuddy.petbuddystore.common.enums;
 
-
-public enum CageSize {
+public enum WeightRange {
     SMALL,
     MEDIUM,
     LARGE,
-    EXTRA_LARGE
+    EXTRA_LARGE,
     ;
 }

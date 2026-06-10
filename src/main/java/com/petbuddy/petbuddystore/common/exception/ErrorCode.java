@@ -64,6 +64,18 @@ public enum ErrorCode {
     PRODUCT_IMAGE_REQUIRED(4212, "Product image is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
+    PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
+
+
+    CART_EMPTY(5001, "Cart is empty", HttpStatus.BAD_REQUEST),
+    CART_ITEM_NOT_FOUND(5002, "Cart item not found", HttpStatus.NOT_FOUND),
+    INVALID_QUANTITY(5003, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
+
+    ORDER_NOT_FOUND(6001, "Order not found", HttpStatus.NOT_FOUND),
+    INVALID_ORDER_STATUS(6002, "Invalid order status", HttpStatus.BAD_REQUEST),
+    PICKING_LIST_NOT_FOUND(6003, "Picking list not found",HttpStatus.NOT_FOUND),
+    PICKING_ALREADY_CREATED(6004, "Picking list already created", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_STOCK(6005, "Insufficient stock",HttpStatus.BAD_REQUEST),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
@@ -80,6 +92,13 @@ public enum ErrorCode {
     CAGE_NOT_EXISTED(8003, "Cage does not exist", HttpStatus.NOT_FOUND),
     BLOG_EXISTED(8004, "Blog has already existed", HttpStatus.BAD_REQUEST),
     BLOG_NOT_EXISTED(8005, "Blog does not exist", HttpStatus.NOT_FOUND),
+
+    CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
+    USER_NOT_STAFF(9002, "User is not staff", HttpStatus.FORBIDDEN),
+    INVALID_WORKING_TIME(9003, "Working time is invalid", HttpStatus.BAD_REQUEST),
+    SCHEDULE_NOT_FOUND(9004, "Staff schedule not found", HttpStatus.NOT_FOUND),
+    CANNOT_UPDATE(9005, "Cannot update schedule started", HttpStatus.BAD_REQUEST),
+
     ;
 
     int code;
