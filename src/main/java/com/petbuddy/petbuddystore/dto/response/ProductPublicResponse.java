@@ -5,6 +5,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,8 +15,7 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductPublicResponse {
 
-    Long productId; // id của product đại diện mới nhất
-
+    UUID productId;
     String name;
     String description;
     BigDecimal price;
