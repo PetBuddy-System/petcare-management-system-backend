@@ -27,24 +27,24 @@ public class OrderController {
 
     OrderService orderService;
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@RequestBody CreateOrderRequest createOrderRequest) {
         return ResponseEntity.ok(ApiResponse.success("Order created successfully",
                 orderService.createOrder(createOrderRequest)));
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(
-            @ParameterObject
-            @PageableDefault(
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(@ParameterObject @PageableDefault(
             sort = "createdAt",
             direction = Sort.Direction.DESC
     ) Pageable pageable) {
-        return ResponseEntity.ok(
-                ApiResponse.success("Orders retrieved successfully", orderService.getOrder(pageable)));
+        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orderService.getOrder(pageable)));
     }
 
-    @GetMapping("/id")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF')")
+    @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@RequestParam long id) {
         return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", orderService.getOrder(id)));
     }
@@ -99,7 +99,7 @@ public class OrderController {
     }
 
     @PreAuthorize("hasRole('STAFF')")
-    @GetMapping("/get-all")
+    @GetMapping("/all")
     public ResponseEntity<ApiResponse<Page<StaffOrderResponse>>> getAllOrders(Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orderService.getAllOrder(pageable)));
     }

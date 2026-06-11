@@ -22,7 +22,7 @@ public class CartController {
     private final CartService cartService;
 
     @PreAuthorize("hasRole('CUSTOMER')")
-    @PostMapping
+    @PostMapping("/items")
     @Operation(description = "Thêm sản phẩm vào giỏ hàng")
     public ResponseEntity<ApiResponse<Void>> addToCart(
             @RequestBody @Valid AddToCartRequest request) {
@@ -30,11 +30,7 @@ public class CartController {
         cartService.addToCart(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Product added to cart successfully",
-                        null
-                )
-        );
+                ApiResponse.success("Product added to cart successfully", null));
     }
 
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -43,11 +39,7 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartResponse>> getCart() {
 
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Cart retrieved successfully",
-                        cartService.getCart()
-                )
-        );
+                ApiResponse.success("Cart retrieved successfully", cartService.getCart()));
     }
 
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -59,11 +51,7 @@ public class CartController {
         cartService.removeItem(productId);
 
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Product removed from cart successfully",
-                        null
-                )
-        );
+                ApiResponse.success("Product removed from cart successfully", null));
     }
 
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -74,10 +62,6 @@ public class CartController {
         cartService.clearCart();
 
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Cart cleared successfully",
-                        null
-                )
-        );
+                ApiResponse.success("Cart cleared successfully", null));
     }
 }

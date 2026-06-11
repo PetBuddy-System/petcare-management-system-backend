@@ -1,6 +1,6 @@
 package com.petbuddy.petbuddystore.model;
 
-import com.petbuddy.petbuddystore.common.enums.CodeStatus;
+import com.petbuddy.petbuddystore.common.enums.VoucherCodeStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,7 +20,7 @@ public class VoucherCode {
     private String code;
 
     @Enumerated(EnumType.STRING)
-    private CodeStatus status;
+    private VoucherCodeStatus status;
 
     @ManyToOne
     @JoinColumn(name = "voucher_id")

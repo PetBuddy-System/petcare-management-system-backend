@@ -50,15 +50,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse createOrder(CreateOrderRequest request) {
 
+        checkLogin();
+
          User user = getCurrentUser();
 
-         List<CartItemResponse> cartItems =
-                 cartService.getCart().getItems();
+         List<CartItemResponse> cartItems = cartService.getCart().getItems();
 
          if (cartItems.isEmpty()) {
-             throw new AppException(
-                     ErrorCode.CART_EMPTY
-             );
+             throw new AppException(ErrorCode.CART_EMPTY);
          }
 
          Order order = Order.builder()
@@ -205,16 +204,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderResponse> getOrder(Pageable pageable) {
         User user = getCurrentUser();
-
         Page<Order> orders = orderRepository.findByUser_UserIdOrderByCreatedAtDesc(user.getUserId(), pageable);
-
         return orders.map(orderMapper::toOrderResponse);
     }
 
     @Override
     public Page<StaffOrderResponse> getAllOrder(Pageable pageable) {
         checkLogin();
-
         Page<Order> order = orderRepository.findAll(pageable);
         return order.map(orderMapper::toStaffOrderResponse);
     }
@@ -246,9 +242,7 @@ public class OrderServiceImpl implements OrderService {
                 .getName();
 
         return userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new AppException(
-                                ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
     private void checkLogin(){
@@ -272,12 +266,7 @@ public class OrderServiceImpl implements OrderService {
 
         for(OrderDetail detail : order.getOrderDetails()) {
 
-            result.addAll(
-                    calculatePickingItems(
-                            detail.getProductName(),
-                            detail.getQuantity()
-                    )
-            );
+            result.addAll(calculatePickingItems(detail.getProductName(), detail.getQuantity()));
         }
 
         return result;

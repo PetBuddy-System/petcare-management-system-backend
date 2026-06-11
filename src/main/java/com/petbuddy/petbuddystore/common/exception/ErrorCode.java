@@ -67,15 +67,15 @@ public enum ErrorCode {
     PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
 
 
-    CART_EMPTY(5001, "Cart is empty", HttpStatus.BAD_REQUEST),
-    CART_ITEM_NOT_FOUND(5002, "Cart item not found", HttpStatus.NOT_FOUND),
-    INVALID_QUANTITY(5003, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
+    CART_EMPTY(5101, "Cart is empty", HttpStatus.BAD_REQUEST),
+    CART_ITEM_NOT_FOUND(5102, "Cart item not found", HttpStatus.NOT_FOUND),
+    INVALID_QUANTITY(5103, "Quantity must be greater than 0", HttpStatus.BAD_REQUEST),
 
-    ORDER_NOT_FOUND(6001, "Order not found", HttpStatus.NOT_FOUND),
-    INVALID_ORDER_STATUS(6002, "Invalid order status", HttpStatus.BAD_REQUEST),
-    PICKING_LIST_NOT_FOUND(6003, "Picking list not found",HttpStatus.NOT_FOUND),
-    PICKING_ALREADY_CREATED(6004, "Picking list already created", HttpStatus.BAD_REQUEST),
-    INSUFFICIENT_STOCK(6005, "Insufficient stock",HttpStatus.BAD_REQUEST),
+    ORDER_NOT_FOUND(5201, "Order not found", HttpStatus.NOT_FOUND),
+    INVALID_ORDER_STATUS(5202, "Invalid order status", HttpStatus.BAD_REQUEST),
+    PICKING_LIST_NOT_FOUND(5203, "Picking list not found",HttpStatus.NOT_FOUND),
+    PICKING_ALREADY_CREATED(5204, "Picking list already created", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_STOCK(5205, "Insufficient stock",HttpStatus.BAD_REQUEST),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
