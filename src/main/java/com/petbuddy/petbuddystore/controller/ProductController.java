@@ -1,6 +1,7 @@
 package com.petbuddy.petbuddystore.controller;
 
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
@@ -51,9 +52,8 @@ public class ProductController {
 
     ProductService productService;
 
-    @PostMapping(
-            value = "/create",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Create product",
             description = "Tạo mới sản phẩm. Tạm thời public để test, sau này chỉ ADMIN/MANAGER/STAFF được dùng."
@@ -100,6 +100,7 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
     @GetMapping("/management")
     @Operation(
             summary = "Get products for management",
@@ -128,9 +129,8 @@ public class ProductController {
         );
     }
 
-    @PatchMapping(
-            value = "/{productId}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PatchMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Update product",
             description = "Cập nhật thông tin sản phẩm.")
@@ -148,6 +148,7 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
     @PatchMapping("/{productId}/status")
     @Operation(
             summary = "Update product status",
@@ -163,6 +164,7 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @DeleteMapping("/{productId}/soft-deleted")
     @Operation(
             summary = "Soft delete product",
@@ -175,6 +177,7 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PatchMapping("/{productId}/restore")
     @Operation(
             summary = "Restore product",
@@ -188,10 +191,8 @@ public class ProductController {
         );
     }
 
-    @PostMapping(
-            value = "/import",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Void>> importProducts(
             @RequestPart("file") MultipartFile file
     ) {
