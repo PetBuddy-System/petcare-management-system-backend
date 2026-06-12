@@ -65,6 +65,7 @@ public enum ErrorCode {
     EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
     PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
+    PRODUCT_PRICE_CHANGE(4216, "Product price has changed", HttpStatus.BAD_REQUEST),
 
 
     CART_EMPTY(5101, "Cart is empty", HttpStatus.BAD_REQUEST),

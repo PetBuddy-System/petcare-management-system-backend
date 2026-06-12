@@ -223,8 +223,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String generateOrderCode() {
-        return "OD" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + String.format("%03d", new Random().nextInt(1000));
+        return "OD" + String.format("%06d", new Random().nextInt(1_000_000));
     }
 
     private User getCurrentUser() {
