@@ -99,6 +99,9 @@ public enum ErrorCode {
     INVALID_WORKING_TIME(9003, "Working time is invalid", HttpStatus.BAD_REQUEST),
     SCHEDULE_NOT_FOUND(9004, "Staff schedule not found", HttpStatus.NOT_FOUND),
     CANNOT_UPDATE(9005, "Cannot update schedule started", HttpStatus.BAD_REQUEST),
+    SAME_STAFF(9006, "Same staff already exists", HttpStatus.BAD_REQUEST),
+    SCHEDULE_ALREADY_EXISTS(9007, "Staff already has a schedule in this time range", HttpStatus.BAD_REQUEST),
+    INVALID_DATE_RANGE(9008, "Date range is invalid", HttpStatus.BAD_REQUEST),
 
     ;
 

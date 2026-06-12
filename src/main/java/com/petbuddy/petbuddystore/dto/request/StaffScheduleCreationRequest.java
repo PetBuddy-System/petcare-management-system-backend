@@ -14,6 +14,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StaffScheduleCreationRequest {
+    String staffId;
     LocalDate workDate;
     LocalTime startTime;
     LocalTime endTime;
