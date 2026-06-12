@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "products")
@@ -24,9 +25,9 @@ import java.util.List;
 public class Product {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id")
-    Long productId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    UUID productId;
 
     @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     String name;
@@ -43,6 +44,7 @@ public class Product {
 
     @Column(columnDefinition = "TEXT")
     String imageUrl;
+
 
     @Column(columnDefinition = "NVARCHAR(100)")
     String brandName;
@@ -61,7 +63,7 @@ public class Product {
 
     @Builder.Default
     @OneToMany(mappedBy = "product")
-    List<OrderItem> orderItems = new ArrayList<>();
+    List<OrderDetail> orderDetails = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -72,4 +74,7 @@ public class Product {
 
     @Column(name = "expiry_date")
     LocalDate expiryDate;
+
+    @Column(nullable = false, unique = true, length = 12)
+    private String productCode;
 }

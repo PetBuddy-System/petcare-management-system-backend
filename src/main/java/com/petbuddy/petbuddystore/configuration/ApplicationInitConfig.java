@@ -46,6 +46,30 @@ public class ApplicationInitConfig {
                 userRepository.save(user);
                 log.warn("Manager has been created");
             }
+
+            if (userRepository.findByEmail("staff@gmail.com").isEmpty()) {
+                User user = User.builder()
+                        .email("staff@gmail.com")
+                        .password(passwordEncoder.encode("staff"))
+                        .fullName("Staff")
+                        .role(Role.STAFF)
+                        .status(UserStatus.ACTIVE)
+                        .build();
+                userRepository.save(user);
+                log.warn("Staff has been created");
+            }
+
+            if (userRepository.findByEmail("user@gmail.com").isEmpty()) {
+                User user = User.builder()
+                        .email("user@gmail.com")
+                        .password(passwordEncoder.encode("user"))
+                        .fullName("User")
+                        .role(Role.CUSTOMER)
+                        .status(UserStatus.ACTIVE)
+                        .build();
+                userRepository.save(user);
+                log.warn("User has been created");
+            }
         };
     }
 }

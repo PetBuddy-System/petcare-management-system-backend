@@ -4,12 +4,13 @@ import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductResponse;
 import com.petbuddy.petbuddystore.mapper.ProductMapper;
 import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
-import com.petbuddy.petbuddystore.repository.CategoryRepository;
 import com.petbuddy.petbuddystore.repository.ProductRepository;
+import com.petbuddy.petbuddystore.service.CategoryService;
 import com.petbuddy.petbuddystore.service.FileService;
 import com.petbuddy.petbuddystore.service.ProductService;
 import lombok.AccessLevel;
@@ -18,32 +19,25 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
-import org.springframework.data.domain.PageImpl;
-import java.util.Comparator;
-import java.util.stream.Collectors;
-import java.io.ByteArrayInputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-
-
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Slf4j
 @Service
@@ -52,68 +46,35 @@ import java.util.Optional;
 public class ProductServiceImpl implements ProductService {
 
     ProductRepository productRepository;
-    CategoryRepository categoryRepository;
-    ProductMapper productMapper;
+    CategoryService categoryService;
     FileService fileService;
+    ProductMapper productMapper;
 
     @Transactional
     @Override
     public ProductResponse createProduct(ProductCreationRequest request) {
         validateExpiryDate(request.getExpiryDate());
 
-        Category category = getActiveCategoryById(request.getCategoryId());
+        Category category = categoryService.getActiveCategoryEntityById(request.getCategoryId());
 
-        Optional<Product> existedBatch =
-                productRepository.findByNameIgnoreCaseAndExpiryDate(
-                        request.getName(),
-                        request.getExpiryDate()
-                );
+        Product product = productMapper.toProduct(request);
+        product.setProductCode(generateProductCode());
+        activateProduct(product);
 
-        Product product;
+        Optional<Product> oldProductWithImage =
+                productRepository.findFirstByNameIgnoreCaseAndImageUrlIsNotNull(request.getName());
 
-        if (existedBatch.isPresent()) {
-            product = existedBatch.get();
+        oldProductWithImage.ifPresent(oldProduct ->
+                product.setImageUrl(oldProduct.getImageUrl())
+        );
 
-            int currentStock = product.getStockQuantity() == null ? 0 : product.getStockQuantity();
-            int importStock = request.getStockQuantity() == null ? 0 : request.getStockQuantity();
-
-            product.setStockQuantity(currentStock + importStock);
-
-            product.setDeleted(false);
-            product.setDeletedAt(null);
-            product.setStatus(true);
-
-        } else {
-            product = productMapper.toProduct(request);
-
-            product.setStatus(true);
-            product.setDeleted(false);
-            product.setDeletedAt(null);
-
-            Optional<Product> oldProductWithImage =
-                    productRepository.findFirstByNameIgnoreCaseAndImageUrlIsNotNull(
-                            request.getName()
-                    );
-
-            oldProductWithImage.ifPresent(oldProduct ->
-                    product.setImageUrl(oldProduct.getImageUrl())
-            );
-        }
-
-        if (product.getImageUrl() == null
-                && request.getImage() != null
-                && !request.getImage().isEmpty()) {
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
             product.setImageUrl(fileService.uploadProductImage(request.getImage()));
         }
 
-        product.setName(request.getName());
-        product.setDescription(request.getDescription());
-        product.setPrice(request.getPrice());
-        product.setBrandName(request.getBrandName());
-        product.setExpiryDate(request.getExpiryDate());
-        product.setCategory(category);
+        applyProductInfo(product, request, category);
 
-        productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
 
         syncSharedFieldsAfterCreateOrImport(
                 request.getName(),
@@ -121,15 +82,14 @@ public class ProductServiceImpl implements ProductService {
                 request.getPrice(),
                 request.getBrandName(),
                 category,
-                product.getImageUrl()
+                savedProduct.getImageUrl()
         );
 
-        return productMapper.toProductResponse(product);
+        return productMapper.toProductResponse(savedProduct);
     }
 
     @Override
     public Page<ProductResponse> getAllProducts(String keyword, Pageable pageable) {
-
         if (keyword != null && !keyword.isBlank()) {
             return productRepository
                     .findByNameContainingIgnoreCaseAndDeletedFalse(keyword, pageable)
@@ -141,95 +101,87 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductPublicResponse> getActiveProducts(String keyword, Pageable pageable) {
+    public Page<ProductPublicResponse> getActiveProducts(Long categoryId, String keyword, String sortBy, Pageable pageable) {
         List<Product> products;
 
-        if (keyword != null && !keyword.isBlank()) {
-            products = productRepository
-                    .findByNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(keyword, Pageable.unpaged())
-                    .getContent();
+        if (categoryId != null) {
+            if (keyword != null && !keyword.isBlank()) {
+                products = productRepository
+                        .findByCategory_CategoryIdAndNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(
+                                categoryId,
+                                keyword,
+                                Pageable.unpaged()
+                        )
+                        .getContent();
+            } else {
+                products = productRepository
+                        .findByCategory_CategoryIdAndStatusTrueAndDeletedFalse(
+                                categoryId,
+                                Pageable.unpaged()
+                        )
+                        .getContent();
+            }
         } else {
-            products = productRepository
-                    .findByStatusTrueAndDeletedFalse(Pageable.unpaged())
-                    .getContent();
+            if (keyword != null && !keyword.isBlank()) {
+                products = productRepository
+                        .findByNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(
+                                keyword,
+                                Pageable.unpaged()
+                        )
+                        .getContent();
+            } else {
+                products = productRepository
+                        .findByStatusTrueAndDeletedFalse(Pageable.unpaged())
+                        .getContent();
+            }
         }
 
-        return groupProductsForUser(products, pageable);
+        return groupProductsForUser(products, sortBy, pageable);
     }
 
     @Override
-    public Page<ProductResponse> getAllProductsForManagement(String keyword, Pageable pageable) {
+    public Page<ProductResponse> getAllProductsForManagement(String keyword, Long categoryId, Boolean status, Boolean deleted, Pageable pageable) {
+        List<Product> products = productRepository.findAll(Pageable.unpaged()).getContent();
 
-        if (keyword != null && !keyword.isBlank()) {
-            return productRepository
-                    .findByNameContainingIgnoreCase(keyword, pageable)
-                    .map(productMapper::toProductResponse);
-        }
+        List<Product> filteredProducts = products.stream()
+                .filter(product -> keyword == null
+                        || keyword.isBlank()
+                        || product.getName().toLowerCase().contains(keyword.toLowerCase()))
+                .filter(product -> categoryId == null
+                        || (product.getCategory() != null
+                        && Objects.equals(product.getCategory().getCategoryId(), categoryId)))
+                .filter(product -> status == null
+                        || Objects.equals(product.getStatus(), status))
+                .filter(product -> deleted == null
+                        || Objects.equals(product.getDeleted(), deleted))
+                .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
+                .toList();
 
-        return productRepository.findAll(pageable)
-                .map(productMapper::toProductResponse);
+        List<ProductResponse> responses = filteredProducts.stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+
+        return paginate(responses, pageable);
     }
 
     @Override
-    public Page<ProductPublicResponse> getProductsByCategory(
-            Long categoryId,
-            String keyword,
-            Pageable pageable
-    ) {
-        List<Product> products;
-
-        if (keyword != null && !keyword.isBlank()) {
-            products = productRepository
-                    .findByCategory_CategoryIdAndNameContainingIgnoreCaseAndStatusTrueAndDeletedFalse(
-                            categoryId,
-                            keyword,
-                            Pageable.unpaged()
-                    )
-                    .getContent();
-        } else {
-            products = productRepository
-                    .findByCategory_CategoryIdAndStatusTrueAndDeletedFalse(
-                            categoryId,
-                            Pageable.unpaged()
-                    )
-                    .getContent();
-        }
-
-        return groupProductsForUser(products, pageable);
-    }
-
-    @Override
-    public ProductResponse getProductById(Long productId) {
+    public ProductResponse getProductById(UUID productId) {
         Product product = getProductEntityByIdAndNotDeleted(productId);
-
         return productMapper.toProductResponse(product);
     }
 
     @Transactional
     @Override
-    public ProductResponse updateProduct(Long productId, ProductUpdateRequest request) {
-
+    public ProductResponse updateProduct(UUID productId, ProductUpdateRequest request) {
         Product selectedProduct = getProductEntityByIdAndNotDeleted(productId);
 
         if (request.getExpiryDate() != null) {
             validateExpiryDate(request.getExpiryDate());
-
-            productRepository
-                    .findByNameIgnoreCaseAndExpiryDate(
-                            selectedProduct.getName(),
-                            request.getExpiryDate()
-                    )
-                    .ifPresent(existed -> {
-                        if (!existed.getProductId().equals(productId)
-                                && Boolean.FALSE.equals(existed.getDeleted())) {
-                            throw new AppException(ErrorCode.PRODUCT_EXISTED);
-                        }
-                    });
         }
 
         Category category = null;
         if (request.getCategoryId() != null) {
-            category = getActiveCategoryById(request.getCategoryId());
+            category = categoryService.getActiveCategoryEntityById(request.getCategoryId());
         }
 
         String newImageUrl = null;
@@ -252,22 +204,33 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse updateProductStatus(Long productId, Boolean status) {
+    @Transactional
+    public ProductResponse updateProductStatus(UUID productId, Boolean status) {
         if (status == null) {
             throw new AppException(ErrorCode.PRODUCT_STATUS_REQUIRED);
         }
 
-        Product product = getProductEntityByIdAndNotDeleted(productId);
+        Product selectedProduct = getProductEntityByIdAndNotDeleted(productId);
 
-        product.setStatus(status);
+        List<Product> sameNameProducts =
+                productRepository.findByNameIgnoreCase(selectedProduct.getName())
+                        .stream()
+                        .filter(product -> Boolean.FALSE.equals(product.getDeleted()))
+                        .toList();
 
-        return productMapper.toProductResponse(productRepository.save(product));
+        for (Product product : sameNameProducts) {
+            product.setStatus(status);
+        }
+
+        productRepository.saveAll(sameNameProducts);
+
+        selectedProduct.setStatus(status);
+        return productMapper.toProductResponse(selectedProduct);
     }
 
     @Override
-    public void softDeleteProduct(Long productId) {
+    public void softDeleteProduct(UUID productId) {
         Product product = getProductEntityByIdAndNotDeleted(productId);
-
         product.setDeleted(true);
         product.setDeletedAt(LocalDateTime.now());
         product.setStatus(false);
@@ -277,8 +240,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
-    public ProductResponse restoreProduct(Long productId) {
-
+    public ProductResponse restoreProduct(UUID productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
@@ -286,9 +248,7 @@ public class ProductServiceImpl implements ProductService {
             throw new AppException(ErrorCode.PRODUCT_NOT_DELETED);
         }
 
-        product.setDeleted(false);
-        product.setDeletedAt(null);
-        product.setStatus(true);
+        activateProduct(product);
 
         return productMapper.toProductResponse(productRepository.save(product));
     }
@@ -330,13 +290,8 @@ public class ProductServiceImpl implements ProductService {
 
                     validateExpiryDate(request.getExpiryDate());
 
-                    Category category = getActiveCategoryByName(categoryName);
+                    Category category = categoryService.getActiveCategoryEntityByName(categoryName);
 
-                    Optional<Product> existedBatch =
-                            productRepository.findByNameIgnoreCaseAndExpiryDate(
-                                    request.getName(),
-                                    request.getExpiryDate()
-                            );
                     String imageUrl = null;
 
                     ExcelImageData pictureData = picturesByRow.get(i);
@@ -356,40 +311,17 @@ public class ProductServiceImpl implements ProductService {
                                 .orElse(null);
                     }
 
-                    Product product;
+                    Product product = productMapper.toProduct(request);
+                    product.setProductCode(generateProductCode());
+                    activateProduct(product);
 
-                    if (existedBatch.isPresent()) {
-                        product = existedBatch.get();
-
-                        int currentStock = product.getStockQuantity() == null ? 0 : product.getStockQuantity();
-                        int importStock = request.getStockQuantity() == null ? 0 : request.getStockQuantity();
-
-                        product.setStockQuantity(currentStock + importStock);
-
-                        product.setDeleted(false);
-                        product.setDeletedAt(null);
-                        product.setStatus(true);
-
-                    } else {
-                        product = productMapper.toProduct(request);
-
-                        product.setStatus(true);
-                        product.setDeleted(false);
-                        product.setDeletedAt(null);
-                    }
-
-                    product.setName(request.getName());
-                    product.setDescription(request.getDescription());
-                    product.setPrice(request.getPrice());
-                    product.setBrandName(request.getBrandName());
-                    product.setExpiryDate(request.getExpiryDate());
-                    product.setCategory(category);
+                    applyProductInfo(product, request, category);
 
                     if (product.getImageUrl() == null && imageUrl != null) {
                         product.setImageUrl(imageUrl);
                     }
 
-                    productRepository.save(product);
+                    Product savedProduct = productRepository.save(product);
 
                     syncSharedFieldsAfterCreateOrImport(
                             request.getName(),
@@ -397,7 +329,7 @@ public class ProductServiceImpl implements ProductService {
                             request.getPrice(),
                             request.getBrandName(),
                             category,
-                            product.getImageUrl()
+                            savedProduct.getImageUrl()
                     );
                 }
             }
@@ -405,16 +337,12 @@ public class ProductServiceImpl implements ProductService {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
+            log.error("Import products failed", e);
             throw new AppException(ErrorCode.IMPORT_FAILED);
         }
     }
 
-    private void updateSharedFields(
-            List<Product> products,
-            ProductUpdateRequest request,
-            Category category,
-            String imageUrl
-    ) {
+    private void updateSharedFields(List<Product> products, ProductUpdateRequest request, Category category, String imageUrl) {
         for (Product product : products) {
             if (request.getPrice() != null) product.setPrice(request.getPrice());
             if (request.getBrandName() != null) product.setBrandName(request.getBrandName());
@@ -443,6 +371,7 @@ public class ProductServiceImpl implements ProductService {
 
         return cell.toString().trim();
     }
+
     private BigDecimal getBigDecimalCell(Row row, int index) {
         Cell cell = row.getCell(index);
 
@@ -456,6 +385,7 @@ public class ProductServiceImpl implements ProductService {
 
         return new BigDecimal(cell.toString().trim());
     }
+
     private Integer getIntegerCell(Row row, int index) {
         Cell cell = row.getCell(index);
 
@@ -469,19 +399,7 @@ public class ProductServiceImpl implements ProductService {
 
         return Integer.parseInt(cell.toString().trim());
     }
-    private Long getLongCell(Row row, int index) {
-        Cell cell = row.getCell(index);
 
-        if (cell == null) {
-            return null;
-        }
-
-        if (cell.getCellType() == CellType.NUMERIC) {
-            return (long) cell.getNumericCellValue();
-        }
-
-        return Long.parseLong(cell.toString().trim());
-    }
     private LocalDate getLocalDateCell(Row row, int index) {
         Cell cell = row.getCell(index);
 
@@ -743,7 +661,7 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    private Product getProductEntityByIdAndNotDeleted(Long productId) {
+    private Product getProductEntityByIdAndNotDeleted(UUID productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
@@ -754,21 +672,6 @@ public class ProductServiceImpl implements ProductService {
         return product;
     }
 
-    private Category getActiveCategoryById(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-
-        if (Boolean.TRUE.equals(category.getDeleted())) {
-            throw new AppException(ErrorCode.CATEGORY_DELETED);
-        }
-
-        if (Boolean.FALSE.equals(category.getStatus())) {
-            throw new AppException(ErrorCode.CATEGORY_INACTIVE);
-        }
-
-        return category;
-    }
-
     private void validateExpiryDate(LocalDate expiryDate) {
         if (expiryDate == null) {
             return;
@@ -777,21 +680,6 @@ public class ProductServiceImpl implements ProductService {
         if (!expiryDate.isAfter(LocalDate.now())) {
             throw new AppException(ErrorCode.EXPIRY_DATE_INVALID);
         }
-    }
-
-    private Category getActiveCategoryByName(String categoryName) {
-        Category category = categoryRepository.findByNameIgnoreCase(categoryName)
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-
-        if (Boolean.TRUE.equals(category.getDeleted())) {
-            throw new AppException(ErrorCode.CATEGORY_DELETED);
-        }
-
-        if (Boolean.FALSE.equals(category.getStatus())) {
-            throw new AppException(ErrorCode.CATEGORY_INACTIVE);
-        }
-
-        return category;
     }
 
     private void syncSharedFieldsAfterCreateOrImport(
@@ -808,56 +696,84 @@ public class ProductServiceImpl implements ProductService {
                         .filter(p -> Boolean.FALSE.equals(p.getDeleted()))
                         .toList();
 
-        for (Product p : sameNameProducts) {
-            p.setDescription(description);
-            p.setPrice(price);
-            p.setBrandName(brandName);
-            p.setCategory(category);
+        for (Product product : sameNameProducts) {
+            product.setDescription(description);
+            product.setPrice(price);
+            product.setBrandName(brandName);
+            product.setCategory(category);
 
             if (imageUrl != null) {
-                p.setImageUrl(imageUrl);
+                product.setImageUrl(imageUrl);
             }
         }
 
         productRepository.saveAll(sameNameProducts);
     }
 
-    private Page<ProductPublicResponse> groupProductsForUser(
-            List<Product> products,
-            Pageable pageable
-    ) {
-        List<ProductPublicResponse> groupedProducts = products.stream()
+    private Page<ProductPublicResponse> groupProductsForUser(List<Product> products, String sortBy, Pageable pageable) {
+        List<List<Product>> groupedProductBatches = products.stream()
                 .collect(Collectors.groupingBy(Product::getName))
                 .values()
                 .stream()
+                .sorted((group1, group2) -> compareProductGroups(group1, group2, sortBy))
+                .toList();
+
+        List<ProductPublicResponse> groupedProducts = groupedProductBatches.stream()
                 .map(group -> {
-                    Product latestProduct = group.stream()
-                            .max(Comparator.comparing(Product::getCreatedAt))
-                            .orElseThrow();
+                    Product latestProduct = getLatestProduct(group);
 
                     int totalStock = group.stream()
-                            .mapToInt(Product::getStockQuantity)
+                            .mapToInt(product -> product.getStockQuantity() == null ? 0 : product.getStockQuantity())
                             .sum();
 
-                    ProductPublicResponse response =
-                            productMapper.toPublicResponse(latestProduct);
-
+                    ProductPublicResponse response = productMapper.toPublicResponse(latestProduct);
                     response.setTotalStock(totalStock);
 
                     return response;
                 })
                 .toList();
 
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), groupedProducts.size());
-
-        List<ProductPublicResponse> pageContent =
-                start >= groupedProducts.size()
-                        ? List.of()
-                        : groupedProducts.subList(start, end);
-
-        return new PageImpl<>(pageContent, pageable, groupedProducts.size());
+        return paginate(groupedProducts, pageable);
     }
+
+    private int compareProductGroups(List<Product> group1, List<Product> group2, String sortBy
+    ) {
+        Product product1 = getLatestProduct(group1);
+        Product product2 = getLatestProduct(group2);
+
+        if ("priceAsc".equalsIgnoreCase(sortBy)) {
+            return product1.getPrice().compareTo(product2.getPrice());
+        }
+
+        if ("priceDesc".equalsIgnoreCase(sortBy)) {
+            return product2.getPrice().compareTo(product1.getPrice());
+        }
+
+        return product2.getCreatedAt().compareTo(product1.getCreatedAt());
+    }
+
+    private Product getLatestProduct(List<Product> products) {
+        return products.stream()
+                .max(Comparator.comparing(Product::getCreatedAt))
+                .orElseThrow();
+    }
+
+    private <T> Page<T> paginate(List<T> items, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+
+        if (start >= items.size()) {
+            return new PageImpl<>(List.of(), pageable, items.size());
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), items.size());
+
+        return new PageImpl<>(
+                items.subList(start, end),
+                pageable,
+                items.size()
+        );
+    }
+
     private boolean isEmptyRow(Row row) {
         for (int i = 0; i < 8; i++) {
             Cell cell = row.getCell(i);
@@ -868,5 +784,28 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return true;
+    }
+
+    private void activateProduct(Product product) {
+        product.setStatus(true);
+        product.setDeleted(false);
+        product.setDeletedAt(null);
+    }
+
+    private void applyProductInfo(Product product, ProductCreationRequest request, Category category) {
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setBrandName(request.getBrandName());
+        product.setExpiryDate(request.getExpiryDate());
+        product.setCategory(category);
+    }
+
+    private String generateProductCode() {
+        return UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 12)
+                .toUpperCase();
     }
 }

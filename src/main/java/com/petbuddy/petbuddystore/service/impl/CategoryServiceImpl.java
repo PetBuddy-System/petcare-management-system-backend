@@ -151,4 +151,36 @@ public class CategoryServiceImpl implements CategoryService {
 
         return category;
     }
+
+    @Override
+    public Category getActiveCategoryEntityById(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        if (Boolean.TRUE.equals(category.getDeleted())) {
+            throw new AppException(ErrorCode.CATEGORY_DELETED);
+        }
+
+        if (Boolean.FALSE.equals(category.getStatus())) {
+            throw new AppException(ErrorCode.CATEGORY_INACTIVE);
+        }
+
+        return category;
+    }
+
+    @Override
+    public Category getActiveCategoryEntityByName(String categoryName) {
+        Category category = categoryRepository.findByNameIgnoreCase(categoryName)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        if (Boolean.TRUE.equals(category.getDeleted())) {
+            throw new AppException(ErrorCode.CATEGORY_DELETED);
+        }
+
+        if (Boolean.FALSE.equals(category.getStatus())) {
+            throw new AppException(ErrorCode.CATEGORY_INACTIVE);
+        }
+
+        return category;
+    }
 }

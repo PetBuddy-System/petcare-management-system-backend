@@ -1,6 +1,7 @@
 package com.petbuddy.petbuddystore.controller;
 
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
@@ -21,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/products")
@@ -49,9 +52,8 @@ public class ProductController {
 
     ProductService productService;
 
-    @PostMapping(
-            value = "/create",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Create product",
             description = "Tạo mới sản phẩm. Tạm thời public để test, sau này chỉ ADMIN/MANAGER/STAFF được dùng."
@@ -86,58 +88,54 @@ public class ProductController {
     @GetMapping("/active")
     @Operation(
             summary = "Get active products",
-            description = "Lấy danh sách sản phẩm đang hoạt động và chưa bị xóa.")
+            description = "Lấy danh sách sản phẩm đang hoạt động và chưa bị xóa."
+    )
     public ResponseEntity<ApiResponse<Page<ProductPublicResponse>>> getActiveProducts(
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
-            Pageable pageable) {
-        return ResponseEntity.ok(
-                ApiResponse.success(productService.getActiveProducts(keyword, pageable))
+            @RequestParam(required = false) String sortBy,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(productService.getActiveProducts(categoryId, keyword, sortBy, pageable))
         );
     }
 
-    @GetMapping({"/management", "/admin"})
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @GetMapping("/management")
     @Operation(
-            summary = "Get all products for management",
-            description = "Lấy toàn bộ sản phẩm gồm active, inactive và deleted. Dành cho ADMIN/MANAGER quản lý.")
+            summary = "Get products for management",
+            description = "Lấy danh sách sản phẩm cho ADMIN/MANAGER/STAFF quản lý."
+    )
     public ResponseEntity<ApiResponse<Page<ProductResponse>>> getAllProductsForManagement(
             @RequestParam(required = false) String keyword,
-            Pageable pageable) {
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean status,
+            @RequestParam(required = false) Boolean deleted,
+            Pageable pageable
+    ) {
         return ResponseEntity.ok(
-                ApiResponse.success(productService.getAllProductsForManagement(keyword, pageable))
+                ApiResponse.success(productService.getAllProductsForManagement(keyword, categoryId, status, deleted, pageable))
         );
     }
 
-    @GetMapping("/category/{categoryId}")
-    @Operation(
-            summary = "Get products by category",
-            description = "Lấy danh sách sản phẩm active theo category.")
-    public ResponseEntity<ApiResponse<Page<ProductPublicResponse>>> getProductsByCategory(
-            @PathVariable Long categoryId,
-            @RequestParam(required = false) String keyword,
-            Pageable pageable) {
-        return ResponseEntity.ok(
-                ApiResponse.success(productService.getProductsByCategory(categoryId, keyword, pageable))
-        );
-    }
 
     @GetMapping("/{productId}")
     @Operation(
             summary = "Get product by id",
             description = "Lấy chi tiết sản phẩm theo id.")
-    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable UUID productId) {
         return ResponseEntity.ok(
                 ApiResponse.success(productService.getProductById(productId))
         );
     }
 
-    @PatchMapping(
-            value = "/{productId}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PatchMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Update product",
             description = "Cập nhật thông tin sản phẩm.")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
-            @PathVariable Long productId,
+            @PathVariable UUID  productId,
             @ModelAttribute ProductUpdateRequest request,
             @RequestPart(value = "image", required = false) MultipartFile image) {
         request.setImage(image);
@@ -150,12 +148,13 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
     @PatchMapping("/{productId}/status")
     @Operation(
             summary = "Update product status",
             description = "Bật/tắt trạng thái sản phẩm.")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
-            @PathVariable Long productId,
+            @PathVariable UUID  productId,
             @RequestParam Boolean status) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -165,11 +164,12 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @DeleteMapping("/{productId}/soft-deleted")
     @Operation(
             summary = "Soft delete product",
             description = "Xóa mềm sản phẩm.")
-    public ResponseEntity<ApiResponse<Void>> softDeleteProduct(@PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<Void>> softDeleteProduct(@PathVariable UUID  productId) {
         productService.softDeleteProduct(productId);
 
         return ResponseEntity.ok(
@@ -177,11 +177,12 @@ public class ProductController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PatchMapping("/{productId}/restore")
     @Operation(
             summary = "Restore product",
             description = "Khôi phục sản phẩm đã bị xóa mềm.")
-    public ResponseEntity<ApiResponse<ProductResponse>> restoreProduct(@PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<ProductResponse>> restoreProduct(@PathVariable UUID  productId) {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Product restored successfully",
@@ -190,10 +191,8 @@ public class ProductController {
         );
     }
 
-    @PostMapping(
-            value = "/import",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Void>> importProducts(
             @RequestPart("file") MultipartFile file
     ) {

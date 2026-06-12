@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class CategoryController {
 
     CategoryService categoryService;
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
     @PostMapping("/create")
     @Operation(
             summary = "Create category",
@@ -62,7 +64,9 @@ public class CategoryController {
                 ApiResponse.success(categoryService.getActiveCategories())
         );
     }
-    @GetMapping({"/management", "/admin"})
+
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @GetMapping("/management")
     @Operation(
             summary = "Get all categories for management",
             description = "Lấy toàn bộ danh mục sản phẩm, bao gồm cả active, inactive và deleted, để hiển thị cho quản lý."
@@ -87,6 +91,7 @@ public class CategoryController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PutMapping("/{categoryId}/update")
     @Operation(
             summary = "Update category",
@@ -104,6 +109,7 @@ public class CategoryController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PatchMapping("/{categoryId}/active")
     @Operation(
             summary = "Activate category",
@@ -120,6 +126,7 @@ public class CategoryController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PatchMapping("/{categoryId}/inactive")
     @Operation(
             summary = "Deactivate category",
@@ -136,6 +143,7 @@ public class CategoryController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @DeleteMapping("/{categoryId}/soft-deleted")
     @Operation(
             summary = "Soft delete category",
@@ -152,6 +160,7 @@ public class CategoryController {
     }
 
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
     @PatchMapping("/{categoryId}/restore")
     @Operation(
             summary = "Restore deleted category",
