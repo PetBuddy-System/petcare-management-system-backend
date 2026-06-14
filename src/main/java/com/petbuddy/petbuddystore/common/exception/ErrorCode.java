@@ -47,13 +47,9 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(4103, "Category not found", HttpStatus.NOT_FOUND),
     CATEGORY_HAS_PRODUCTS(4104, "Cannot delete category because it is linked to products", HttpStatus.BAD_REQUEST),
     CATEGORY_DELETED(4105, "Category has been deleted", HttpStatus.BAD_REQUEST),
-    CATEGORY_NOT_DELETED(4106, "Category is not deleted", HttpStatus.BAD_REQUEST),
-    CATEGORY_INACTIVE(4107, "Category is inactive", HttpStatus.BAD_REQUEST),
+    CATEGORY_REQUIRED(4108, "Category is required", HttpStatus.BAD_REQUEST),
 
-    PRODUCT_NAME_REQUIRED(4201, "Product name is required", HttpStatus.BAD_REQUEST),
-    PRODUCT_PRICE_REQUIRED(4202, "Product price is required", HttpStatus.BAD_REQUEST),
-    PRODUCT_PRICE_INVALID(4203, "Product price must be greater than 0", HttpStatus.BAD_REQUEST),
-    PRODUCT_STOCK_REQUIRED(4204, "Product stock quantity is required", HttpStatus.BAD_REQUEST),
+
     PRODUCT_STOCK_INVALID(4205, "Product stock quantity must be greater than or equal to 0", HttpStatus.BAD_REQUEST),
     PRODUCT_EXISTED(4206, "Product already exists", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_FOUND(4207, "Product not found", HttpStatus.NOT_FOUND),
@@ -65,6 +61,13 @@ public enum ErrorCode {
     EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
     EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
     PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
+    INVALID_SORT_OPTION(4216, "Invalid sort option", HttpStatus.BAD_REQUEST),
+    PRODUCT_IMAGE_LIMIT_EXCEEDED(4217, "Cannot upload more than 5 images for a product", HttpStatus.BAD_REQUEST),
+    BATCH_REQUIRED(4218, "Batch list is required", HttpStatus.BAD_REQUEST),
+    BATCH_LIMIT_EXCEEDED(4219, "Cannot create more than 10 batches at once", HttpStatus.BAD_REQUEST),
+    BATCH_NOT_FOUND(4220, "Batch not found", HttpStatus.NOT_FOUND),
+    PRODUCT_HAS_BATCHES(4221, "Cannot delete product because it has batches", HttpStatus.BAD_REQUEST),
+    PRODUCT_INACTIVE(4222, "Product is inactive", HttpStatus.BAD_REQUEST),
     PRODUCT_PRICE_CHANGE(4216, "Product price has changed", HttpStatus.BAD_REQUEST),
 
 
@@ -84,7 +87,7 @@ public enum ErrorCode {
     VOUCHER_CODE_NOT_FOUND(5304, "Voucher code not found", HttpStatus.NOT_FOUND),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
-    FILE_TOO_LARGE(7002, "File size must be <= 5MB", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(7002, "File size is too large", HttpStatus.BAD_REQUEST),
     INVALID_FILE_TYPE(7003, "Only JPG, PNG, WEBP images are allowed", HttpStatus.BAD_REQUEST),
     UPLOAD_FAILED(7004, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
     IMAGE_SIZE_INVALID(7005, "Upload maximum 3 photos", HttpStatus.BAD_REQUEST),
