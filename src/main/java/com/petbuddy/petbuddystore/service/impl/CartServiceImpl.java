@@ -52,7 +52,6 @@ public class CartServiceImpl implements CartService {
             return;
         }
 
-        // Nếu chưa có HOẶC có rồi nhưng giá đã thay đổi -> Tạo item mới hoàn toàn với giá mới
         cartSession.getItems().add(
                 CartItemSession.builder()
                         .cartItemId(UUID.randomUUID())

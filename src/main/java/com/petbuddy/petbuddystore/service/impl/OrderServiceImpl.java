@@ -287,8 +287,7 @@ public class OrderServiceImpl implements OrderService {
 
             int picked = Math.min(batch.getStockQuantity(), remaining);
 
-            result.add(
-                    PickingItemResponse.builder()
+            result.add(PickingItemResponse.builder()
                             .productId(batch.getProductId())
                             .name(batch.getName())
                             .expiryDate(batch.getExpiryDate())
