@@ -3,16 +3,14 @@ package com.petbuddy.petbuddystore.dto.request;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AddToCartRequest {
-    UUID productId;
-
+public class UpdateCartItemRequest {
     Integer quantity;
+
+    private Boolean acceptPriceChange;
 }

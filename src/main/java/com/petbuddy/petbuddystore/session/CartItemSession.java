@@ -12,6 +12,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @ToString
 public class CartItemSession {
+    private UUID cartItemId;
+
     private UUID productId;
 
     private String productName;

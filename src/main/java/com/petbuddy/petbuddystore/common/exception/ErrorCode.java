@@ -54,6 +54,12 @@ public enum ErrorCode {
     PRODUCT_EXISTED(4206, "Product already exists", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_FOUND(4207, "Product not found", HttpStatus.NOT_FOUND),
     PRODUCT_DELETED(4208, "Product has been deleted", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_DELETED(4209, "Product is not deleted", HttpStatus.BAD_REQUEST),
+    CATEGORY_ID_REQUIRED(4210, "Category id is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_STATUS_REQUIRED(4211, "Product status is required", HttpStatus.BAD_REQUEST),
+    PRODUCT_IMAGE_REQUIRED(4212, "Product image is required", HttpStatus.BAD_REQUEST),
+    EXPIRY_DATE_REQUIRED(4213, "Expiry date is required", HttpStatus.BAD_REQUEST),
+    EXPIRY_DATE_INVALID(4214, "Expiry date must be in the future", HttpStatus.BAD_REQUEST),
     PRODUCT_OUT_OF_STOCK(4215, "Product out of stock", HttpStatus.BAD_REQUEST),
     INVALID_SORT_OPTION(4216, "Invalid sort option", HttpStatus.BAD_REQUEST),
     PRODUCT_IMAGE_LIMIT_EXCEEDED(4217, "Cannot upload more than 5 images for a product", HttpStatus.BAD_REQUEST),
@@ -62,6 +68,7 @@ public enum ErrorCode {
     BATCH_NOT_FOUND(4220, "Batch not found", HttpStatus.NOT_FOUND),
     PRODUCT_HAS_BATCHES(4221, "Cannot delete product because it has batches", HttpStatus.BAD_REQUEST),
     PRODUCT_INACTIVE(4222, "Product is inactive", HttpStatus.BAD_REQUEST),
+    PRODUCT_PRICE_CHANGE(4216, "Product price has changed", HttpStatus.BAD_REQUEST),
 
 
     CART_EMPTY(5101, "Cart is empty", HttpStatus.BAD_REQUEST),
