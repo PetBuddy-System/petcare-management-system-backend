@@ -1,34 +1,37 @@
 package com.petbuddy.petbuddystore.service;
 
+import com.petbuddy.petbuddystore.common.enums.ProductStatus;
 import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.ProductDetailResponse;
+import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
-import com.petbuddy.petbuddystore.dto.response.ProductResponse;
+import com.petbuddy.petbuddystore.model.Category;
+import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public interface ProductService {
 
-    ProductResponse createProduct(ProductCreationRequest request);
+    ProductManagementResponse createProduct(ProductCreationRequest request, List<MultipartFile> images);
 
-    Page<ProductResponse> getAllProducts(String keyword, Pageable pageable);
+    Page<ProductPublicResponse> getProductsForUser(String keyword, Long categoryId, String brandName, String sortBy, Pageable pageable);
 
-    Page<ProductPublicResponse> getActiveProducts(Long categoryId, String keyword, String sortBy, Pageable pageable);
+    Page<ProductManagementResponse> getProductsForManagement(String keyword, Long categoryId, String brandName, ProductStatus status, String sortBy, Pageable pageable );
 
-    Page<ProductResponse> getAllProductsForManagement(String keyword, Long categoryId, Boolean status, Boolean deleted, Pageable pageable);
+    ProductDetailResponse getProductDetail(UUID productId);
 
-    ProductResponse getProductById(UUID productId);
+    ProductManagementResponse updateProduct(UUID productId, ProductUpdateRequest request, List<MultipartFile> images);
 
-    ProductResponse updateProduct(UUID productId, ProductUpdateRequest request);
+    Product getProductEntityById(UUID productId);
 
-    ProductResponse updateProductStatus(UUID productId, Boolean status);
+    Product getActiveProductEntityById(UUID productId);
 
-    void softDeleteProduct(UUID productId);
+    Product getProductEntityByName(String name);
 
-    ProductResponse restoreProduct(UUID productId);
-
-    void importProducts(MultipartFile file);
-}
+    Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category);}

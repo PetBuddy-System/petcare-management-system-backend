@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
@@ -46,7 +48,7 @@ public class CartController {
     @Operation(description = "Remove product from cart")
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<ApiResponse<Void>> removeItem(
-            @PathVariable Long productId) {
+            @PathVariable UUID productId) {
 
         cartService.removeItem(productId);
 

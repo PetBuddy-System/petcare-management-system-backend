@@ -6,8 +6,10 @@ import com.petbuddy.petbuddystore.dto.request.AddToCartRequest;
 import com.petbuddy.petbuddystore.dto.response.CartResponse;
 import com.petbuddy.petbuddystore.mapper.CartMapper;
 import com.petbuddy.petbuddystore.model.Product;
+import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
 import com.petbuddy.petbuddystore.repository.ProductRepository;
 import com.petbuddy.petbuddystore.service.CartService;
+import com.petbuddy.petbuddystore.service.ProductService;
 import com.petbuddy.petbuddystore.session.CartItemSession;
 import com.petbuddy.petbuddystore.session.CartSession;
 import lombok.AccessLevel;
@@ -16,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-
+import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -24,20 +26,29 @@ public class CartServiceImpl implements CartService {
 
     CartSession cartSession;
 
-    ProductRepository productRepository;
+    ProductService productService;
+
+    ProductBatchRepository productBatchRepository;
 
     CartMapper cartMapper;
 
     @Override
     public void addToCart(AddToCartRequest request) {
 
-       checkLogin();
+        checkLogin();
 
-        Product product = productRepository
-                .findById(request.getProductId())
-                .orElseThrow(() ->
-                        new AppException(
-                                ErrorCode.PRODUCT_NOT_FOUND));
+        Product product = productService.getProductEntityById(
+                request.getProductId()
+        );
+
+        int availableStock =
+                productBatchRepository.findAvailableStockByProductId(
+                        product.getProductId()
+                );
+
+        if (availableStock < request.getQuantity()) {
+            throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        }
 
         CartItemSession existingItem =
                 cartSession.getItems()
@@ -48,12 +59,13 @@ public class CartServiceImpl implements CartService {
                         .findFirst()
                         .orElse(null);
 
-        if(existingItem != null){
+        if (existingItem != null) {
 
             existingItem.setQuantity(
                     existingItem.getQuantity()
                             + request.getQuantity());
 
+            existingItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(existingItem.getQuantity())));
             return;
         }
 
@@ -71,12 +83,11 @@ public class CartServiceImpl implements CartService {
     @Override
     public CartResponse getCart() {
         checkLogin();
-
         return cartMapper.toCartResponse(cartSession);
     }
 
     @Override
-    public void removeItem(Long productId) {
+    public void removeItem(UUID productId) {
 
         checkLogin();
 
@@ -97,6 +108,5 @@ public class CartServiceImpl implements CartService {
         if (userId == null) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
-
     }
 }
