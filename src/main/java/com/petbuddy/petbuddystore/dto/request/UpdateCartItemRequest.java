@@ -1,18 +1,16 @@
 package com.petbuddy.petbuddystore.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CategoryCreationRequest {
+public class UpdateCartItemRequest {
+    Integer quantity;
 
-    String name;
-
-    String description;
+    private Boolean acceptPriceChange;
 }

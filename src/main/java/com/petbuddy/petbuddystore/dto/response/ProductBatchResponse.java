@@ -1,38 +1,40 @@
 package com.petbuddy.petbuddystore.dto.response;
 
+import com.petbuddy.petbuddystore.common.enums.ProductStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProductResponse {
+public class ProductBatchResponse {
+
+    UUID batchId;
+
+    String batchCode;
 
     UUID productId;
+
     String productCode;
-    String name;
-    String description;
-    BigDecimal price;
+
+    String productName;
+
     Integer stockQuantity;
-    String imageUrl;
-    String brandName;
-    Boolean status;
-    Boolean deleted;
-    LocalDateTime deletedAt;
-
-    Long categoryId;
-    String categoryName;
-
-    LocalDateTime createdAt;
-    LocalDateTime updatedAt;
 
     LocalDate expiryDate;
+
+    ProductStatus status;
+
+    LocalDateTime deletedAt;
+
+    LocalDateTime createdAt;
+
+    LocalDateTime updatedAt;
 }

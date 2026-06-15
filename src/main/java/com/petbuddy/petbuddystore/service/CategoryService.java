@@ -9,9 +9,7 @@ import java.util.List;
 
 public interface CategoryService {
 
-    CategoryResponse createCategory(CategoryCreationRequest request);
-
-    List<CategoryResponse> getAllCategories();
+    List<CategoryResponse> createCategories(List<CategoryCreationRequest> requests);
 
     List<CategoryResponse> getActiveCategories();
 
@@ -20,12 +18,6 @@ public interface CategoryService {
     CategoryResponse getCategoryById(Long categoryId);
 
     CategoryResponse updateCategory(Long categoryId, CategoryUpdateRequest request);
-
-    CategoryResponse updateCategoryStatus(Long categoryId, Boolean status);
-
-    void softDeleteCategory(Long categoryId);
-
-    CategoryResponse restoreCategory(Long categoryId);
 
     Category getActiveCategoryEntityById(Long categoryId);
 

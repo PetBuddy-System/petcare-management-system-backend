@@ -27,152 +27,48 @@ public class CategoryController {
 
     CategoryService categoryService;
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
-    @PostMapping("/create")
-    @Operation(
-            summary = "Create category",
-            description = "Tạo mới danh mục sản phẩm. Tạm thời public để test, sau này chỉ ADMIN/MANAGER/STAFF được dùng."
-    )
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
-            @Valid @RequestBody CategoryCreationRequest request) {
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PostMapping
+    @Operation(summary = "Create categories")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> createCategories(
+            @Valid @RequestBody List<CategoryCreationRequest> requests
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(
-                        "Category created successfully",
-                        categoryService.createCategory(request)
+                        "Categories created successfully",
+                        categoryService.createCategories(requests)
                 ));
     }
 
     @GetMapping
-    @Operation(
-            summary = "Get all categories",
-            description = "Lấy toàn bộ danh mục sản phẩm, bao gồm cả active và inactive."
-    )
-    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategories() {
-        return ResponseEntity.ok(
-                ApiResponse.success(categoryService.getAllCategories())
-        );
-    }
-
-    @GetMapping("/active")
-    @Operation(
-            summary = "Get active categories",
-            description = "Lấy danh sách danh mục đang hoạt động để hiển thị cho khách hàng."
-    )
+    @Operation(summary = "Get active categories for user UI")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getActiveCategories() {
-        return ResponseEntity.ok(
-                ApiResponse.success(categoryService.getActiveCategories())
-        );
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getActiveCategories()));
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER','ROLE_STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @GetMapping("/management")
-    @Operation(
-            summary = "Get all categories for management",
-            description = "Lấy toàn bộ danh mục sản phẩm, bao gồm cả active, inactive và deleted, để hiển thị cho quản lý."
-    )
+    @Operation(summary = "Get all categories for management")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategoriesForManagement() {
-        return ResponseEntity.ok(
-                ApiResponse.success(categoryService.getAllCategoriesForManagement())
-        );
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategoriesForManagement()));
     }
-
 
     @GetMapping("/{categoryId}")
-    @Operation(
-            summary = "Get category by id",
-            description = "Lấy chi tiết một danh mục theo categoryId."
-    )
-    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(
-            @PathVariable Long categoryId) {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(categoryService.getCategoryById(categoryId))
-        );
+    @Operation(summary = "Get category by id")
+    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getCategoryById(categoryId)));
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
-    @PutMapping("/{categoryId}/update")
-    @Operation(
-            summary = "Update category",
-            description = "Cập nhật tên, mô tả và trạng thái của danh mục."
-    )
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PatchMapping("/{categoryId}")
+    @Operation(summary = "Update category info/status")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable Long categoryId,
-            @Valid @RequestBody CategoryUpdateRequest request) {
-
+            @Valid @RequestBody CategoryUpdateRequest request
+    ) {
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Category updated successfully",
+                ApiResponse.success("Category updated successfully",
                         categoryService.updateCategory(categoryId, request)
-                )
-        );
-    }
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
-    @PatchMapping("/{categoryId}/active")
-    @Operation(
-            summary = "Activate category",
-            description = "Mở lại danh mục đã bị khóa/xóa mềm."
-    )
-    public ResponseEntity<ApiResponse<CategoryResponse>> activateCategory(
-            @PathVariable Long categoryId) {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Category activated successfully",
-                        categoryService.updateCategoryStatus(categoryId, true)
-                )
-        );
-    }
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
-    @PatchMapping("/{categoryId}/inactive")
-    @Operation(
-            summary = "Deactivate category",
-            description = "Khóa danh mục, không hiển thị cho khách hàng. Đây là xóa mềm, không xóa khỏi database."
-    )
-    public ResponseEntity<ApiResponse<CategoryResponse>> deactivateCategory(
-            @PathVariable Long categoryId) {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Category deactivated successfully",
-                        categoryService.updateCategoryStatus(categoryId, false)
-                )
-        );
-    }
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
-    @DeleteMapping("/{categoryId}/soft-deleted")
-    @Operation(
-            summary = "Soft delete category",
-            description = "Xóa mềm category. Category sẽ không bị xóa khỏi database, chỉ chuyển deleted = true, status = false."
-    )
-    public ResponseEntity<ApiResponse<Void>> softDeleteCategory(
-            @PathVariable Long categoryId) {
-
-        categoryService.softDeleteCategory(categoryId);
-
-        return ResponseEntity.ok(
-                ApiResponse.success("Category deleted successfully")
-        );
-    }
-
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
-    @PatchMapping("/{categoryId}/restore")
-    @Operation(
-            summary = "Restore deleted category",
-            description = "Khôi phục category đã bị xóa mềm. Sau khi restore, deleted = false, status = true."
-    )
-    public ResponseEntity<ApiResponse<CategoryResponse>> restoreCategory(
-            @PathVariable Long categoryId) {
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Category restored successfully",
-                        categoryService.restoreCategory(categoryId)
                 )
         );
     }

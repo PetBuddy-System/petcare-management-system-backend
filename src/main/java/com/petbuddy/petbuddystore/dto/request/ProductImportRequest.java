@@ -1,8 +1,10 @@
 package com.petbuddy.petbuddystore.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -10,9 +12,21 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CategoryCreationRequest {
+public class ProductImportRequest {
+
+    int rowNumber;
 
     String name;
 
     String description;
+
+    BigDecimal price;
+
+    String brandName;
+
+    String categoryName;
+
+    Integer stockQuantity;
+
+    LocalDate expiryDate;
 }

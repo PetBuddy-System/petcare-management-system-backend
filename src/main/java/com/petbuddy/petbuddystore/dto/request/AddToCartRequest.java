@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AddToCartRequest {
-    private UUID productId;
+    UUID productId;
 
-    private Integer quantity;
+    Integer quantity;
 }
