@@ -60,6 +60,6 @@ public class User {
     List<Pet> pets = new ArrayList<>();
 
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<StaffSchedule> schedules = new ArrayList<>();
+    List<StaffSchedule> staffSchedules = new ArrayList<>();
 
 }

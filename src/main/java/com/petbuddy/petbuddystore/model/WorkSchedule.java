@@ -11,26 +11,40 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "staff_schedules")
+@Table(name = "work_schedules")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StaffSchedule {
+public class WorkSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    String staffScheduleId;
+    @Column(name = "work_schedule_id")
+    String workScheduleId;
+
+    @Column(nullable = false)
+    LocalDate workDate;
+
+    @Column(nullable = false)
+    LocalTime startTime;
+
+    @Column(nullable = false)
+    LocalTime endTime;
 
     @Column(columnDefinition = "TEXT")
     String note;
 
-    LocalDateTime checkInAt;
-    LocalDateTime checkOutAt;
-    LocalDateTime assignedAt;
+    @Enumerated(EnumType.STRING)
+    ShiftType shiftType;
+
+    @Enumerated(EnumType.STRING)
+    ScheduleStatus scheduleStatus;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -39,11 +53,7 @@ public class StaffSchedule {
     @UpdateTimestamp
     LocalDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "staff_id", nullable = false)
-    User staff;
+    @OneToMany(mappedBy = "workSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<StaffSchedule> staffSchedules = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "work_schedule_id", nullable = false)
-    WorkSchedule workSchedule;
 }

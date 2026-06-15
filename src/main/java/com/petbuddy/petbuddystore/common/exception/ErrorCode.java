@@ -101,6 +101,8 @@ public enum ErrorCode {
     SAME_STAFF(9006, "Same staff already exists", HttpStatus.BAD_REQUEST),
     SCHEDULE_ALREADY_EXISTS(9007, "Staff already has a schedule in this time range", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(9008, "Date range is invalid", HttpStatus.BAD_REQUEST),
+    STAFF_ALREADY_ASSIGNED_TO_SCHEDULE(9009, "Staff already assigned to this schedule", HttpStatus.BAD_REQUEST),
+    WORK_SCHEDULE_NOT_EXISTED(9010, "Work schedule does not exist", HttpStatus.NOT_FOUND),
 
     ;
 

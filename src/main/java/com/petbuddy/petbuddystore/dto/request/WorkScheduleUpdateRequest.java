@@ -1,4 +1,4 @@
-package com.petbuddy.petbuddystore.dto.response;
+package com.petbuddy.petbuddystore.dto.request;
 
 import com.petbuddy.petbuddystore.common.enums.ScheduleStatus;
 import com.petbuddy.petbuddystore.common.enums.ShiftType;
@@ -6,7 +6,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -14,16 +13,11 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StaffScheduleResponse {
-    String scheduleId;
-    String staffId;
-    String staffName;
+public class WorkScheduleUpdateRequest {
     LocalDate workDate;
     LocalTime startTime;
     LocalTime endTime;
     String note;
     ShiftType shiftType;
     ScheduleStatus scheduleStatus;
-    LocalDateTime createdAt;
-    LocalDateTime updatedAt;
 }
