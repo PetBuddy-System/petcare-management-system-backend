@@ -33,7 +33,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -107,24 +106,62 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public void confirmOrder(Long orderId) {
+    public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
         checkLogin();
-        Order order = findOrder(orderId);
-        if(order.getStatus() != OrderStatus.PENDING){
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.CONFIRMED);
-        orderRepository.save(order);
-    }
 
-    @Override
-    public void startPicking(Long orderId) {
-        checkLogin();
         Order order = findOrder(orderId);
-        if(order.getStatus() != OrderStatus.CONFIRMED){
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+        OrderStatus currentStatus = order.getStatus();
+
+        switch (currentStatus) {
+
+            case PENDING -> {
+                if (newStatus != OrderStatus.CONFIRMED
+                        && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case CONFIRMED -> {
+                if (newStatus != OrderStatus.PICKING
+                        && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case PICKING -> {
+                if (newStatus != OrderStatus.SHIPPING
+                        && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+
+                if (newStatus == OrderStatus.SHIPPING) {
+                    for (OrderDetail detail : order.getOrderDetails()) {
+                        deductStockByFefo(
+                                detail.getProduct().getProductId(),
+                                detail.getQuantity()
+                        );
+                    }
+                }
+            }
+
+            case SHIPPING -> {
+                if (newStatus != OrderStatus.DELIVERED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case DELIVERED -> {
+                if (newStatus != OrderStatus.COMPLETED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case COMPLETED, CANCELED -> {
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+            }
         }
-        order.setStatus(OrderStatus.PICKING);
+
+        order.setStatus(newStatus);
         orderRepository.save(order);
     }
 
@@ -135,53 +172,7 @@ public class OrderServiceImpl implements OrderService {
         if(order.getStatus() != OrderStatus.PICKING){
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
-
         return buildPickingList(order);
-    }
-
-    @Override
-    public void shipOrder(Long orderId){
-        checkLogin();
-        Order order = findOrder(orderId);
-        if(order.getStatus() != OrderStatus.PICKING){
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-
-        for (OrderDetail detail : order.getOrderDetails()) {
-            deductStockByFefo(detail.getProduct().getProductId(), detail.getQuantity());
-        }
-
-        order.setStatus(OrderStatus.SHIPPING);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void deliveredOrder(Long orderId) {
-        checkLogin();
-        Order order = findOrder(orderId);
-        if(order.getStatus() != OrderStatus.SHIPPING){
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.DELIVERED);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void completedOrder(Long orderId) {
-        checkLogin();
-        Order order = findOrder(orderId);
-        if(order.getStatus() != OrderStatus.DELIVERED){
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void cancelOrder(Long orderId) {
-        Order order = findOrder(orderId);
-        order.setStatus(OrderStatus.CANCELED);
-        orderRepository.save(order);
     }
 
     @Override
@@ -288,9 +279,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String generateOrderCode() {
-        return "OD"
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + String.format("%03d", new Random().nextInt(1000));
+            return "OD" + String.format("%06d", new Random().nextInt(1_000_000));
     }
 
     private User getCurrentUser() {

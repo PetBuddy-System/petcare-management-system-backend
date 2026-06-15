@@ -112,7 +112,6 @@ public class CartServiceImpl implements CartService {
     @Override
     public void updateCart(UUID cartItemId, UpdateCartItemRequest request) {
         checkLogin();
-
         CartItemSession item = cartSession.getItems()
                 .stream()
                 .filter(i -> i.getCartItemId() != null && i.getCartItemId().equals(cartItemId))
