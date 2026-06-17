@@ -1,10 +1,17 @@
 package com.petbuddy.petbuddystore.service.impl;
 
 import com.petbuddy.petbuddystore.common.enums.Role;
+import com.petbuddy.petbuddystore.common.enums.ScheduleStatus;
+import com.petbuddy.petbuddystore.common.enums.ShiftType;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
+import com.petbuddy.petbuddystore.dto.request.StaffReassignRequest;
+import com.petbuddy.petbuddystore.dto.request.StaffsAssignRequest;
 import com.petbuddy.petbuddystore.dto.request.WorkScheduleCreationRequest;
+import com.petbuddy.petbuddystore.dto.request.WorkScheduleUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.StaffScheduleResponse;
 import com.petbuddy.petbuddystore.dto.response.WorkScheduleResponse;
+import com.petbuddy.petbuddystore.mapper.StaffScheduleMapper;
 import com.petbuddy.petbuddystore.mapper.WorkScheduleMapper;
 import com.petbuddy.petbuddystore.model.StaffSchedule;
 import com.petbuddy.petbuddystore.model.User;
@@ -17,10 +24,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -33,6 +45,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     WorkScheduleRepository workScheduleRepository;
     UserRepository userRepository;
     StaffScheduleRepository staffScheduleRepository;
+    StaffScheduleMapper staffScheduleMapper;
 
     @Override
     public WorkScheduleResponse createWorkSchedule(WorkScheduleCreationRequest request) {
@@ -40,10 +53,15 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             throw new AppException(ErrorCode.INVALID_WORKING_TIME);
         }
 
+        if (workScheduleRepository.existsByWorkDateAndStartTimeAndEndTime(request.getWorkDate(),
+                request.getStartTime(), request.getEndTime())) {
+            throw new AppException(ErrorCode.WORK_SCHEDULE_EXISTED);
+        }
+
         WorkSchedule workSchedule = workScheduleMapper.toWorkSchedule(request);
         workSchedule = workScheduleRepository.save(workSchedule);
 
-        if (!request.getStaffIds().isEmpty()){
+        if (request.getStaffIds() != null && !request.getStaffIds().isEmpty()){
             assignStaffToSchedule(workSchedule, request.getStaffIds());
         }
 
@@ -53,139 +71,152 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         return workScheduleMapper.toWorkScheduleResponse(savedWorkSchedule);
     }
 
-    private void assignStaffToSchedule(WorkSchedule workSchedule, List<String> staffIds) {
-        for (String staffId : staffIds) {
-            User staff = userRepository.findById(staffId)
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    @Override
+    public WorkScheduleResponse getWorkScheduleById(String workScheduleId) {
+        WorkSchedule workSchedule = workScheduleRepository.findByIdWithStaffs(workScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_EXISTED));
+        return workScheduleMapper.toWorkScheduleResponse(workSchedule);
+    }
 
-            if (staff.getRole() != Role.STAFF) {
-                throw new AppException(ErrorCode.USER_NOT_STAFF);
-            }
-            boolean scheduleAssigned = staffScheduleRepository.existsByStaff_UserIdAndWorkSchedule_WorkScheduleId
-                    (staffId, workSchedule.getWorkScheduleId());
+    @Override
+    public Page<WorkScheduleResponse> getWorkSchedules(LocalDate fromDate, LocalDate toDate, ShiftType shiftType,
+                                                       int page, int size) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new AppException(ErrorCode.INVALID_DATE_RANGE);
+        }
 
-            if (scheduleAssigned) {
-                throw new AppException(ErrorCode.STAFF_ALREADY_ASSIGNED_TO_SCHEDULE);
-            }
+        Pageable pageable = PageRequest.of(page, size);
+        Page<WorkSchedule> workSchedulePage = workScheduleRepository.findWorkSchedules(fromDate, toDate, shiftType, pageable);
+        return workSchedulePage.map(workScheduleMapper::toWorkScheduleResponse);
+    }
+
+    @Override
+    public WorkScheduleResponse updateWorkSchedule(String workScheduleId, WorkScheduleUpdateRequest request) {
+        WorkSchedule workSchedule = workScheduleRepository.findByIdWithStaffs(workScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_EXISTED));
+
+        if (!request.getStartTime().isBefore(request.getEndTime())) {
+            throw new AppException(ErrorCode.INVALID_WORKING_TIME);
+        }
+
+        boolean hasStarted = staffScheduleRepository.existsByWorkScheduleIdAndStatusIn(workScheduleId,
+                List.of(ScheduleStatus.WORKING, ScheduleStatus.COMPLETED));
+
+        if (hasStarted) {
+            throw new AppException(ErrorCode.CANNOT_UPDATE);
+        }
+
+        for (StaffSchedule staffSchedule : workSchedule.getStaffSchedules()) {
+            String staffId = staffSchedule.getStaff().getUserId();
 
             boolean hasExistedSchedule = staffScheduleRepository.existsSchedule(
-                    staffId, workSchedule.getWorkDate(), workSchedule.getStartTime(),
-                    workSchedule.getEndTime(), workSchedule.getWorkScheduleId());
+                    staffId, request.getWorkDate(), request.getStartTime(),
+                    request.getEndTime(), workScheduleId, List.of(ScheduleStatus.SCHEDULED, ScheduleStatus.WORKING));
 
             if (hasExistedSchedule) {
                 throw new AppException(ErrorCode.SCHEDULE_ALREADY_EXISTS);
             }
+        }
+
+        workScheduleMapper.updateWorkSchedule(workSchedule, request);
+        WorkSchedule savedWorkSchedule = workScheduleRepository.save(workSchedule);
+
+        WorkSchedule result = workScheduleRepository.findByIdWithStaffs(savedWorkSchedule.getWorkScheduleId())
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_EXISTED));
+        return workScheduleMapper.toWorkScheduleResponse(result);
+    }
+
+    @Override
+    public WorkScheduleResponse assignStaffsToWorkSchedule(String workScheduleId, StaffsAssignRequest request) {
+        WorkSchedule workSchedule = workScheduleRepository.findByIdWithStaffs(workScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_EXISTED));
+
+        if (request.getStaffIds() == null || request.getStaffIds().isEmpty()) {
+            throw new AppException(ErrorCode.STAFF_LIST_EMPTY);
+        }
+
+        assignStaffToSchedule(workSchedule, request.getStaffIds());
+        return workScheduleMapper.toWorkScheduleResponse(workSchedule);
+    }
+
+    @Override
+    public void removeStaffFromWorkSchedule(String staffScheduleId) {
+        StaffSchedule staffSchedule = staffScheduleRepository.findById(staffScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_SCHEDULE_NOT_EXISTED));
+
+        if (staffSchedule.getScheduleStatus() != ScheduleStatus.SCHEDULED) {
+            throw new AppException(ErrorCode.CANNOT_UPDATE);
+        }
+
+        staffSchedule.setScheduleStatus(ScheduleStatus.CANCELLED);
+        staffScheduleRepository.save(staffSchedule);
+    }
+
+    @Override
+    public StaffScheduleResponse reassignStaffToWorkSchedule(String staffScheduleId, StaffReassignRequest request) {
+        StaffSchedule staffSchedule = staffScheduleRepository.findById(staffScheduleId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_SCHEDULE_NOT_EXISTED));
+
+        if (staffSchedule.getScheduleStatus() != ScheduleStatus.SCHEDULED) {
+            throw new AppException(ErrorCode.CANNOT_UPDATE);
+        }
+
+        User newStaff = validateStaff(request.getNewStaff());
+        User oldStaff = staffSchedule.getStaff();
+
+        if (oldStaff.getUserId().equals(newStaff.getUserId())) {
+            throw new AppException(ErrorCode.SAME_STAFF);
+        }
+
+        WorkSchedule workSchedule = staffSchedule.getWorkSchedule();
+        validateStaffAssignedToSchedule(newStaff.getUserId(), workSchedule.getWorkScheduleId(), workSchedule.getWorkDate(),
+                workSchedule.getStartTime(), workSchedule.getEndTime());
+
+        staffSchedule.setStaff(newStaff);
+        return staffScheduleMapper.toStaffScheduleResponse(staffScheduleRepository.save(staffSchedule));
+    }
+
+    private void assignStaffToSchedule(WorkSchedule workSchedule, List<String> staffIds) {
+        for (String staffId : staffIds) {
+            User staff = validateStaff(staffId);
+            validateStaffAssignedToSchedule(staffId, workSchedule.getWorkScheduleId(), workSchedule.getWorkDate(),
+                    workSchedule.getStartTime(), workSchedule.getEndTime());
 
             StaffSchedule staffSchedule = StaffSchedule.builder()
                     .staff(staff)
                     .workSchedule(workSchedule)
                     .assignedAt(LocalDateTime.now())
+                    .scheduleStatus(ScheduleStatus.SCHEDULED)
                     .build();
-            staffScheduleRepository.save(staffSchedule);
+            StaffSchedule savedStaffSchedule = staffScheduleRepository.save(staffSchedule);
+            workSchedule.getStaffSchedules().add(savedStaffSchedule);
+        }
+    }
+
+    private void validateStaffAssignedToSchedule(String staffId, String workScheduleId, LocalDate workDate,
+                                                 LocalTime startTime, LocalTime endTime){
+        boolean scheduleAssigned = staffScheduleRepository.existsByStaff_UserIdAndWorkSchedule_WorkScheduleId
+                (staffId, workScheduleId);
+
+        if (scheduleAssigned) {
+            throw new AppException(ErrorCode.STAFF_ALREADY_ASSIGNED_TO_SCHEDULE);
         }
 
+        boolean hasExistedSchedule = staffScheduleRepository.existsSchedule(
+                staffId, workDate, startTime, endTime, workScheduleId, List.of(ScheduleStatus.SCHEDULED, ScheduleStatus.WORKING));
+
+        if (hasExistedSchedule) {
+            throw new AppException(ErrorCode.SCHEDULE_ALREADY_EXISTS);
+        }
     }
 
-    @Override
-    public WorkScheduleResponse getWorkScheduleById(String workScheduleId) {
-        WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)
-                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_EXISTED));
-        return workScheduleMapper.toWorkScheduleResponse(schedule);
+    private User validateStaff(String staffId) {
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (staff.getRole() != Role.STAFF) {
+            throw new AppException(ErrorCode.USER_NOT_STAFF);
+        }
+        return staff;
     }
-//
-//    @Override
-//    public List<WorkScheduleResponse> getMySchedules(LocalDate fromDate, LocalDate toDate) {
-//        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-//        User staff = userRepository.findById(userId)
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-//
-//        if (staff.getRole() != Role.STAFF) {
-//            throw new AppException(ErrorCode.USER_NOT_STAFF);
-//        }
-//
-//        List<StaffSchedule> schedules;
-//        if (fromDate != null && toDate != null) {
-//            if(fromDate.isAfter(toDate)) {
-//                throw new AppException(ErrorCode.INVALID_DATE_RANGE);
-//            }
-//            schedules = scheduleRepository.findByStaff_UserIdAndWorkDateBetweenOrderByWorkDateAscStartTimeAsc(userId, fromDate, toDate);
-//        } else {
-//            schedules = scheduleRepository.findByStaff_UserIdOrderByWorkDateAscStartTimeAsc(userId);
-//        }
-//
-//        return schedules.stream()
-//                .map(scheduleMapper::toStaffScheduleResponse)
-//                .toList();
-//    }
-//
-//    @Override
-//    public List<WorkScheduleResponse> getAllStaffSchedules(LocalDate fromDate, LocalDate toDate, LocalDate workDate) {
-//        List<StaffSchedule> schedules;
-//
-//        if (workDate != null) {
-//            schedules = scheduleRepository.findByWorkDateOrderByStartTimeAsc(workDate);
-//        } else if (fromDate != null && toDate != null) {
-//            if(fromDate.isAfter(toDate)) {
-//                throw new AppException(ErrorCode.INVALID_DATE_RANGE);
-//            }
-//            schedules = scheduleRepository.findByWorkDateBetweenOrderByWorkDateAscStartTimeAsc(fromDate, toDate);
-//        } else {
-//            schedules = scheduleRepository.findAll();
-//        }
-//
-//        return schedules.stream()
-//                .map(scheduleMapper::toStaffScheduleResponse)
-//                .toList();
-//    }
-//
-//    @Override
-//    public WorkScheduleResponse updateStaffSchedule(String scheduleId, WorkScheduleUpdateRequest request) {
-//        StaffSchedule schedule = scheduleRepository.findById(scheduleId)
-//                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
-//
-//        if (schedule.getScheduleStatus() != ScheduleStatus.SCHEDULED) {
-//            throw new AppException(ErrorCode.CANNOT_UPDATE);
-//        }
-//
-//        if (!request.getStartTime().isBefore(request.getEndTime())) {
-//            throw new AppException(ErrorCode.INVALID_WORKING_TIME);
-//        }
-//
-//        scheduleMapper.updateStaffSchedule(schedule, request);
-//        return scheduleMapper.toStaffScheduleResponse(scheduleRepository.save(schedule));
-//    }
-
-//    @Override
-//    public WorkScheduleResponse reassignStaff(String scheduleId, StaffScheduleReassignRequest request) {
-//        StaffSchedule schedule = scheduleRepository.findById(scheduleId)
-//                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
-//
-//        if (schedule.getScheduleStatus() != ScheduleStatus.SCHEDULED) {
-//            throw new AppException(ErrorCode.CANNOT_UPDATE);
-//        }
-//
-//        User newStaff = userRepository.findById(request.getNewStaff())
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-//
-//        if (newStaff.getRole() != Role.STAFF) {
-//                throw new AppException(ErrorCode.USER_NOT_STAFF);
-//        }
-//
-//        if (schedule.getStaff().getUserId().equals(newStaff.getUserId())) {
-//            throw new AppException(ErrorCode.SAME_STAFF);
-//        }
-//
-//        boolean hasExistedSchedule = scheduleRepository.existsSchedule(
-//                newStaff.getUserId(), schedule.getWorkDate(), schedule.getStartTime(),
-//                schedule.getEndTime(), schedule.getScheduleId());
-//
-//        if (hasExistedSchedule) {
-//            throw new AppException(ErrorCode.SCHEDULE_ALREADY_EXISTS);
-//        }
-//        schedule.setStaff(newStaff);
-//        schedule.setNote(request.getReason());
-//        return scheduleMapper.toStaffScheduleResponse(scheduleRepository.save(schedule));
-//    }
-
-
 }

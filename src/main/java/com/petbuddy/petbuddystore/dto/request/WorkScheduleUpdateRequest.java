@@ -19,5 +19,4 @@ public class WorkScheduleUpdateRequest {
     LocalTime endTime;
     String note;
     ShiftType shiftType;
-    ScheduleStatus scheduleStatus;
 }

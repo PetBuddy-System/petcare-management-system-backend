@@ -32,6 +32,9 @@ public class StaffSchedule {
     LocalDateTime checkOutAt;
     LocalDateTime assignedAt;
 
+    @Enumerated(EnumType.STRING)
+    ScheduleStatus scheduleStatus;
+
     @CreationTimestamp
     @Column(updatable = false)
     LocalDateTime createdAt;

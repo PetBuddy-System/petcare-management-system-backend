@@ -43,9 +43,6 @@ public class WorkSchedule {
     @Enumerated(EnumType.STRING)
     ShiftType shiftType;
 
-    @Enumerated(EnumType.STRING)
-    ScheduleStatus scheduleStatus;
-
     @CreationTimestamp
     @Column(updatable = false)
     LocalDateTime createdAt;
@@ -54,6 +51,7 @@ public class WorkSchedule {
     LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "workSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     List<StaffSchedule> staffSchedules = new ArrayList<>();
 
 }

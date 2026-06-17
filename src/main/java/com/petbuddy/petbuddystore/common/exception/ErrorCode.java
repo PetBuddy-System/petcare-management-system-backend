@@ -100,13 +100,18 @@ public enum ErrorCode {
     CATALOG_NOT_FOUND(9001, "Service catalog not found", HttpStatus.NOT_FOUND),
     USER_NOT_STAFF(9002, "User is not staff", HttpStatus.FORBIDDEN),
     INVALID_WORKING_TIME(9003, "Working time is invalid", HttpStatus.BAD_REQUEST),
-    SCHEDULE_NOT_FOUND(9004, "Staff schedule not found", HttpStatus.NOT_FOUND),
+    STAFF_SCHEDULE_NOT_EXISTED(9004, "Staff schedule not found", HttpStatus.NOT_FOUND),
     CANNOT_UPDATE(9005, "Cannot update schedule started", HttpStatus.BAD_REQUEST),
     SAME_STAFF(9006, "Same staff already exists", HttpStatus.BAD_REQUEST),
     SCHEDULE_ALREADY_EXISTS(9007, "Staff already has a schedule in this time range", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(9008, "Date range is invalid", HttpStatus.BAD_REQUEST),
     STAFF_ALREADY_ASSIGNED_TO_SCHEDULE(9009, "Staff already assigned to this schedule", HttpStatus.BAD_REQUEST),
     WORK_SCHEDULE_NOT_EXISTED(9010, "Work schedule does not exist", HttpStatus.NOT_FOUND),
+    WORK_SCHEDULE_EXISTED(9011, "Work schedule already exists", HttpStatus.BAD_REQUEST),
+    STAFF_LIST_EMPTY(9012, "Staff list is empty", HttpStatus.BAD_REQUEST),
+    CANNOT_CHECKIN(9013, "Cannot check in", HttpStatus.BAD_REQUEST),
+    CANNOT_CHECKOUT(9014, "Cannot check out", HttpStatus.BAD_REQUEST),
+
 
     ;
 

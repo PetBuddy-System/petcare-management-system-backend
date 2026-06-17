@@ -20,6 +20,5 @@ public class WorkScheduleCreationRequest {
     LocalTime endTime;
     String note;
     ShiftType shiftType;
-    ScheduleStatus scheduleStatus;
     List<String> staffIds;
 }
