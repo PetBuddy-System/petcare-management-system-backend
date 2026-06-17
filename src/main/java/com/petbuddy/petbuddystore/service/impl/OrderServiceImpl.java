@@ -1,23 +1,16 @@
 package com.petbuddy.petbuddystore.service.impl;
 
+import com.petbuddy.petbuddystore.common.enums.DiscountType;
 import com.petbuddy.petbuddystore.common.enums.OrderStatus;
 import com.petbuddy.petbuddystore.common.enums.ProductStatus;
+import com.petbuddy.petbuddystore.common.enums.VoucherStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.request.CreateOrderRequest;
-import com.petbuddy.petbuddystore.dto.response.CartItemResponse;
-import com.petbuddy.petbuddystore.dto.response.OrderResponse;
-import com.petbuddy.petbuddystore.dto.response.PickingItemResponse;
-import com.petbuddy.petbuddystore.dto.response.StaffOrderResponse;
+import com.petbuddy.petbuddystore.dto.response.*;
 import com.petbuddy.petbuddystore.mapper.OrderMapper;
-import com.petbuddy.petbuddystore.model.Order;
-import com.petbuddy.petbuddystore.model.OrderDetail;
-import com.petbuddy.petbuddystore.model.Product;
-import com.petbuddy.petbuddystore.model.ProductBatch;
-import com.petbuddy.petbuddystore.model.User;
-import com.petbuddy.petbuddystore.repository.OrderRepository;
-import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
-import com.petbuddy.petbuddystore.repository.UserRepository;
+import com.petbuddy.petbuddystore.model.*;
+import com.petbuddy.petbuddystore.repository.*;
 import com.petbuddy.petbuddystore.service.CartService;
 import com.petbuddy.petbuddystore.service.OrderService;
 import com.petbuddy.petbuddystore.service.ProductService;
@@ -33,7 +26,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -51,6 +43,8 @@ public class OrderServiceImpl implements OrderService {
     CartService cartService;
     OrderMapper orderMapper;
     UserRepository userRepository;
+    UserVoucherRepository userVoucherRepository;
+    VoucherRepository voucherRepository;
 
     @Override
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -98,33 +92,89 @@ public class OrderServiceImpl implements OrderService {
             orderDetails.add(detail);
         }
 
+        BigDecimal finalAmount = total;
+        Voucher voucher;
+
+        if(request.getVoucherCode() != null && !request.getVoucherCode().trim().isEmpty()){
+            voucher = voucherRepository.findByVoucherCode(request.getVoucherCode())
+                    .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND));
+
+            validateVoucher(voucher, user, total);
+
+            BigDecimal discountAmount = calculateDiscount(voucher, total);
+            finalAmount = total.subtract(discountAmount);
+
+            voucher.setUsedCount(voucher.getUsedCount() + 1);
+            voucherRepository.save(voucher);
+
+            UserVouchers userVoucher = UserVouchers.builder()
+                    .user(user)
+                    .voucher(voucher)
+                    .usedAt(LocalDateTime.now())
+                    .build();
+            userVoucherRepository.save(userVoucher);
+        }
+
         order.setOrderDetails(orderDetails);
         order.setTotalAmount(total);
-        order.setFinalAmount(total);
+        order.setFinalAmount(finalAmount);
         orderRepository.save(order);
         cartService.clearCart();
         return orderMapper.toOrderResponse(order);
     }
 
     @Override
-    public void confirmOrder(Long orderId) {
+    public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
         checkLogin();
-        Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.CONFIRMED);
-        orderRepository.save(order);
-    }
 
-    @Override
-    public void startPicking(Long orderId) {
-        checkLogin();
         Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+        OrderStatus currentStatus = order.getStatus();
+
+        switch (currentStatus) {
+            case PENDING -> {
+                if (newStatus != OrderStatus.CONFIRMED && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case CONFIRMED -> {
+                if (newStatus != OrderStatus.PICKING && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case PICKING -> {
+                if (newStatus != OrderStatus.SHIPPING && newStatus != OrderStatus.CANCELED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+
+                if (newStatus == OrderStatus.SHIPPING) {
+                    for (OrderDetail detail : order.getOrderDetails()) {
+                        deductStockByFefo(
+                                detail.getProduct().getProductId(),
+                                detail.getQuantity()
+                        );
+                    }
+                }
+            }
+
+            case SHIPPING -> {
+                if (newStatus != OrderStatus.DELIVERED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case DELIVERED -> {
+                if (newStatus != OrderStatus.COMPLETED) {
+                    throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                }
+            }
+
+            case COMPLETED, CANCELED -> {
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+            }
         }
-        order.setStatus(OrderStatus.PICKING);
+        order.setStatus(newStatus);
         orderRepository.save(order);
     }
 
@@ -132,56 +182,10 @@ public class OrderServiceImpl implements OrderService {
     public List<PickingItemResponse> getPickingList(Long orderId) {
         checkLogin();
         Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.PICKING) {
+        if(order.getStatus() != OrderStatus.PICKING){
             throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
-
         return buildPickingList(order);
-    }
-
-    @Override
-    public void shipOrder(Long orderId) {
-        checkLogin();
-        Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.PICKING) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-
-        for (OrderDetail detail : order.getOrderDetails()) {
-            deductStockByFefo(detail.getProduct().getProductId(), detail.getQuantity());
-        }
-
-        order.setStatus(OrderStatus.SHIPPING);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void deliveredOrder(Long orderId) {
-        checkLogin();
-        Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.SHIPPING) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.DELIVERED);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void completedOrder(Long orderId) {
-        checkLogin();
-        Order order = findOrder(orderId);
-        if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-        order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
-    }
-
-    @Override
-    public void cancelOrder(Long orderId) {
-        Order order = findOrder(orderId);
-        order.setStatus(OrderStatus.CANCELED);
-                orderRepository.save(order);
     }
 
     @Override
@@ -208,7 +212,7 @@ public class OrderServiceImpl implements OrderService {
     private List<PickingItemResponse> buildPickingList(Order order) {
         List<PickingItemResponse> result = new ArrayList<>();
 
-        for (OrderDetail detail : order.getOrderDetails()) {
+        for(OrderDetail detail : order.getOrderDetails()) {
             result.addAll(calculatePickingItems(detail.getProduct().getProductId(), detail.getQuantity()));
         }
 
@@ -228,8 +232,7 @@ public class OrderServiceImpl implements OrderService {
 
             int picked = Math.min(batch.getStockQuantity(), remaining);
 
-            result.add(
-                    PickingItemResponse.builder()
+            result.add(PickingItemResponse.builder()
                             .productId(batch.getProduct().getProductId())
                             .name(batch.getProduct().getName())
                             .expiryDate(batch.getExpiryDate())
@@ -240,7 +243,7 @@ public class OrderServiceImpl implements OrderService {
             remaining -= picked;
         }
 
-        if (remaining > 0) {
+        if(remaining > 0){
             throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
         }
 
@@ -288,36 +291,22 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String generateOrderCode() {
-        return "OD"
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + String.format("%03d", new Random().nextInt(1000));
+            return "OD" + String.format("%06d", new Random().nextInt(1_000_000));
     }
 
     private User getCurrentUser() {
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getName().equals("anonymousUser")) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-
+        checkLogin();
         String userId = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
-
         return userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
-
     private void checkLogin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication.getName().equals("anonymousUser")) {
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName().equals("anonymousUser")) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
@@ -325,5 +314,48 @@ public class OrderServiceImpl implements OrderService {
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    }
+
+    private BigDecimal calculateDiscount(Voucher voucher, BigDecimal orderAmount) {
+        BigDecimal discount;
+
+        if (voucher.getDiscountType() == DiscountType.PERCENTAGE) {
+            discount = orderAmount.multiply(voucher.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            if (voucher.getMaxDiscount() != null) {
+                discount = discount.min(voucher.getMaxDiscount());
+            }
+        } else {
+            discount = voucher.getDiscountValue();
+        }
+
+        return discount.min(orderAmount);
+    }
+
+    private void validateVoucher(Voucher voucher, User user, BigDecimal totalAmount) {
+        LocalDateTime now = LocalDateTime.now();
+        if (voucher.getStatus() != VoucherStatus.ACTIVE) {
+            throw new AppException(ErrorCode.VOUCHER_INVALID_STATUS);
+        }
+
+        if (now.isBefore(voucher.getStartAt())) {
+            throw new AppException(ErrorCode.VOUCHER_NOT_STARTED);
+        }
+
+        if (now.isAfter(voucher.getExpiredAt())) {
+            throw new AppException(ErrorCode.VOUCHER_EXPIRED);
+        }
+
+        if (voucher.getUsageLimit() != null && voucher.getUsedCount() >= voucher.getUsageLimit()) {
+            throw new AppException(ErrorCode.VOUCHER_OUT_OF_USAGE);
+        }
+
+        if (voucher.getMinOrderValue() != null && totalAmount.compareTo(voucher.getMinOrderValue()) < 0) {
+            throw new AppException(ErrorCode.VOUCHER_MIN_ORDER_NOT_MET);
+        }
+
+        long userUsedCount = userVoucherRepository.countByUserAndVoucher(user, voucher);
+        if (voucher.getPerUserLimit() != null && userUsedCount >= voucher.getPerUserLimit()) {
+            throw new AppException(ErrorCode.VOUCHER_USER_LIMIT_EXCEEDED);
+        }
     }
 }

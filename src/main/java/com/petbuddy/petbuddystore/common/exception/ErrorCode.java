@@ -81,6 +81,16 @@ public enum ErrorCode {
     PICKING_ALREADY_CREATED(5204, "Picking list already created", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_STOCK(5205, "Insufficient stock",HttpStatus.BAD_REQUEST),
 
+    VOUCHER_NOT_FOUND(5301, "Voucher not found", HttpStatus.NOT_FOUND),
+    VOUCHER_CODE_EXISTED(5302, "Voucher code already exists", HttpStatus.BAD_REQUEST),
+    VOUCHER_INVALID_DATE(5303, "Voucher date is invalid", HttpStatus.BAD_REQUEST),
+    VOUCHER_EXPIRED(5304, "Voucher has expired",HttpStatus.BAD_REQUEST),
+    VOUCHER_NOT_STARTED(5305, "Voucher is not active yet",HttpStatus.BAD_REQUEST),
+    VOUCHER_OUT_OF_USAGE(5306, "Voucher usage limit exceeded",HttpStatus.BAD_REQUEST),
+    VOUCHER_MIN_ORDER_NOT_MET(5307, "Order value does not meet voucher requirement",HttpStatus.BAD_REQUEST),
+    VOUCHER_USER_LIMIT_EXCEEDED(5308, "You have reached voucher usage limit",HttpStatus.BAD_REQUEST),
+    VOUCHER_INVALID_STATUS(5309, "Voucher is inactive",HttpStatus.BAD_REQUEST),
+
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size is too large", HttpStatus.BAD_REQUEST),
     INVALID_FILE_TYPE(7003, "Only JPG, PNG, WEBP images are allowed", HttpStatus.BAD_REQUEST),
