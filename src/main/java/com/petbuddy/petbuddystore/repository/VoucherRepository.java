@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface VoucherRepository extends JpaRepository<Voucher, UUID> {
     boolean existsByVoucherCode(String voucherCode);
      boolean existsByVoucherCodeAndVoucherIdNot(String voucherCode, UUID voucherId);
+     Optional<Voucher> findByVoucherCode(String voucherCode);
 
 }

@@ -15,6 +15,4 @@ public interface VoucherService {
     Page<VoucherResponse> getAllVouchers(Pageable pageable);
 
     VoucherResponse getVoucherById(UUID id);
-
-    void deleteVoucher(UUID voucherId);
 }

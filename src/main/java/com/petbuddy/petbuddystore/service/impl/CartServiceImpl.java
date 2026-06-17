@@ -81,7 +81,6 @@ public class CartServiceImpl implements CartService {
     @Override
     public CartResponse getCart() {
         checkLogin();
-
         for (CartItemSession item : cartSession.getItems()) {
             if (item.getCartItemId() == null) {
                 item.setCartItemId(UUID.randomUUID());

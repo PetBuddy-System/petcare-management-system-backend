@@ -61,13 +61,4 @@ public class VoucherController {
                 "Cập nhật voucher thành công",
                 voucherService.updateVoucher(id, request)));
     }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<String>> delete(@PathVariable UUID id) {
-        voucherService.deleteVoucher(id);
-        return ResponseEntity.ok(ApiResponse.success(
-                "Xóa voucher thành công",
-                null));
-    }
 }

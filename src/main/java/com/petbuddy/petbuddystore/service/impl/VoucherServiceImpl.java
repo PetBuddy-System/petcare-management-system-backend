@@ -56,7 +56,6 @@ public class VoucherServiceImpl implements VoucherService {
         return voucherRepository.findAll(pageable).map(voucherMapper::toVoucherResponse);
     }
 
-    @Transactional
     public VoucherResponse updateVoucher(UUID id, VoucherRequest request) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND));
@@ -73,13 +72,5 @@ public class VoucherServiceImpl implements VoucherService {
         voucher.setUpdatedAt(LocalDateTime.now());
 
         return voucherMapper.toVoucherResponse(voucherRepository.save(voucher));
-    }
-
-    @Transactional
-    public void deleteVoucher(UUID id) {
-        if (!voucherRepository.existsById(id)) {
-            throw new AppException(ErrorCode.VOUCHER_NOT_FOUND);
-        }
-        voucherRepository.deleteById(id);
     }
 }
