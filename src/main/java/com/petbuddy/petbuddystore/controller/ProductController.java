@@ -39,6 +39,7 @@ public class ProductController {
     ProductService productService;
     ObjectMapper objectMapper;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductManagementResponse>> createProduct(@RequestPart("data") String requestJson, @RequestPart(value = "images", required = false) List<MultipartFile> images) throws IOException {
         ProductCreationRequest request = objectMapper.readValue(requestJson, ProductCreationRequest.class);
@@ -90,6 +91,7 @@ public class ProductController {
         return ResponseEntity.ok( ApiResponse.success(productService.getProductDetail(productId)));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @PatchMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductManagementResponse>> updateProduct(
             @PathVariable UUID productId, @RequestPart("data") String requestJson,
