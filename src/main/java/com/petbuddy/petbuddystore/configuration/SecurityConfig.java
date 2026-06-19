@@ -24,7 +24,9 @@ import java.util.List;
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {"/api/users", "/api/auth/signup", "/api/auth/login",
             "/api/auth/logout", "/api/auth/introspect", "/api/auth/refresh", "/api/auth/verify-email",
-    "/api/auth/resend-otp", "/api/auth/forgot-password", "/api/auth/reset-password"};
+    "/api/auth/resend-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/categories",
+    "/api/categories/active", "/api/categories/{categoryId}", "/api/products", "/api/products/active",
+    "/api/products/category/{categoryId}", "/api/products/{productId}"};
 
     private final String[] GET_ENDPOINTS = {"/api/blogs/", "/api/blogs/**"};
 
@@ -37,19 +39,6 @@ public class SecurityConfig {
             "/pet-buddy/swagger-ui.html",
     };
 
-    private static final String[] PUBLIC_CATEGORY_GET_ENDPOINTS = {
-            "/api/categories",
-            "/api/categories/active",
-            "/api/categories/{categoryId}"
-    };
-
-    private static final String[] PUBLIC_PRODUCT_GET_ENDPOINTS = {
-            "/api/products",
-            "/api/products/active",
-            "/api/products/category/{categoryId}",
-            "/api/products/{productId}"
-    };
-
     private final CustomJwtDecoder customJwtDecoder;
 
     @Bean
@@ -58,8 +47,6 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, GET_ENDPOINTS).permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS_SWAGGER).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_CATEGORY_GET_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_PRODUCT_GET_ENDPOINTS).permitAll()
                         .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 ->

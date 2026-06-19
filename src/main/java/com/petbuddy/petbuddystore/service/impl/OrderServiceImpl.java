@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -82,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(product)
                     .productName(product.getName())
-                    .productImage(getThumbnail(product))
+                    .productImage(product.getImageUrls().getFirst())
                     .unitPrice(item.getPrice())
                     .quantity(item.getQuantity())
                     .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -250,27 +251,26 @@ public class OrderServiceImpl implements OrderService {
         return result;
     }
 
+
+
     private void deductStockByFefo(UUID productId, int quantity) {
         List<ProductBatch> batches = getActiveBatchesByFefo(productId);
-
+        List<ProductBatch> updatedBatches = new ArrayList<>();
         int remaining = quantity;
 
         for (ProductBatch batch : batches) {
-            if (remaining <= 0) {
-                break;
-            }
+            if (remaining <= 0) break;
 
             int picked = Math.min(batch.getStockQuantity(), remaining);
-
             batch.setStockQuantity(batch.getStockQuantity() - picked);
-            productBatchRepository.save(batch);
-
+            updatedBatches.add(batch);
             remaining -= picked;
         }
 
         if (remaining > 0) {
             throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
         }
+        productBatchRepository.saveAll(updatedBatches);
     }
 
     private List<ProductBatch> getActiveBatchesByFefo(UUID productId) {
@@ -282,26 +282,13 @@ public class OrderServiceImpl implements OrderService {
                 );
     }
 
-    private String getThumbnail(Product product) {
-        if (product.getImageUrls() == null || product.getImageUrls().isEmpty()) {
-            return null;
-        }
-
-        return product.getImageUrls().getFirst();
-    }
-
-    private String generateOrderCode() {
-            return "OD" + String.format("%06d", new Random().nextInt(1_000_000));
-    }
+    private String generateOrderCode() {return "OD" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));}
 
     private User getCurrentUser() {
-        checkLogin();
-        String userId = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {throw new AppException(ErrorCode.UNAUTHENTICATED);}
+        String userId = authentication.getName();
+        return userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
     private void checkLogin() {

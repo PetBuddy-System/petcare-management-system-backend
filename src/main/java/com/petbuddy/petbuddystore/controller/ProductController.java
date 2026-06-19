@@ -35,6 +35,7 @@ import java.util.UUID;
 public class ProductController {
 
     ProductService productService;
+
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create product",
