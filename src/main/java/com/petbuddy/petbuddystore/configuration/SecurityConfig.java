@@ -28,7 +28,7 @@ public class SecurityConfig {
     "/api/categories/active", "/api/categories/{categoryId}", "/api/products", "/api/products/active",
     "/api/products/category/{categoryId}", "/api/products/{productId}"};
 
-    private final String[] GET_ENDPOINTS = {"/api/blogs/", "/api/blogs/**"};
+    private final String[] GET_ENDPOINTS = {};
 
     private static final String[] PUBLIC_ENDPOINTS_SWAGGER = {
             "/v3/api-docs/**",
@@ -77,7 +77,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("*"));
+        corsConfiguration.setAllowedOrigins(List.of("http://localhost:5173"));
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(false);
