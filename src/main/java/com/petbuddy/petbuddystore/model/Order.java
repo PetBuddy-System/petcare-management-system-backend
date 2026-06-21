@@ -46,6 +46,13 @@ public class Order {
     @Column(columnDefinition = "NVARCHAR(255)")
     String address;
 
+    Double latitude;
+
+    Double longitude;
+
+    @Column(name = "distance")
+    Double distanceKm;
+
     BigDecimal shippingFee;
 
     BigDecimal totalAmount;
