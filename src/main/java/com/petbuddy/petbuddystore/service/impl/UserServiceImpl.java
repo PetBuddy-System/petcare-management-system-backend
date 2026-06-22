@@ -16,6 +16,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +30,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     UserMapper userMapper;
-//    PasswordEncoder passwordEncoder;
+    PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse createUser(UserCreationRequest request, Role role) {
@@ -39,7 +40,7 @@ public class UserServiceImpl implements UserService {
 
         User user =  userMapper.toUser(request);
         user.setStatus(UserStatus.ACTIVE);
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(role);
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -89,5 +90,11 @@ public class UserServiceImpl implements UserService {
 
         user.setStatus(request.getStatus());
         return userMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    public User getUserEntityById(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 }
