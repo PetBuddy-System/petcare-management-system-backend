@@ -52,31 +52,12 @@ public class OrderServiceImpl implements OrderService {
         checkLogin();
 
         User user = getCurrentUser();
-        List<CartItemResponse> cartItems;
 
-        if (request.getItems() != null && !request.getItems().isEmpty()) {
-            cartItems = request.getItems().stream()
-                    .map(item -> CartItemResponse.builder()
-                            .cartItemId(UUID.randomUUID())
-                            .productId(item.getProductId())
-                            .price(item.getPrice())
-                            .quantity(item.getQuantity())
-                            .subtotal(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                            .build())
-                    .toList();
-        } else {
-            cartItems = cartService.getCart().getItems();
-        }
+        List<CartItemResponse> cartItems = cartService.getCart().getItems();
 
         if (cartItems.isEmpty()) {
             throw new AppException(ErrorCode.CART_EMPTY);
         }
-
-//        List<CartItemResponse> cartItems = cartService.getCart().getItems();
-//
-//        if (cartItems.isEmpty()) {
-//            throw new AppException(ErrorCode.CART_EMPTY);
-//        }
 
         Order order = Order.builder()
                 .orderCode(generateOrderCode())
@@ -103,7 +84,7 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(product)
                     .productName(product.getName())
-                    .productImage(product.getImageUrls().getFirst())
+//                    .productImage(product.getImageUrls().getFirst())
                     .unitPrice(item.getPrice())
                     .quantity(item.getQuantity())
                     .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -196,6 +177,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         order.setStatus(newStatus);
+        order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
     }
 
