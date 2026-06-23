@@ -2,6 +2,7 @@ package com.petbuddy.petbuddystore.controller;
 
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
 import com.petbuddy.petbuddystore.dto.request.AddToCartRequest;
+import com.petbuddy.petbuddystore.dto.request.MergeCartRequest;
 import com.petbuddy.petbuddystore.dto.request.UpdateCartItemRequest;
 import com.petbuddy.petbuddystore.dto.response.CartResponse;
 import com.petbuddy.petbuddystore.service.CartService;
@@ -72,5 +73,13 @@ public class CartController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Cart cleared successfully", null));
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(description = "Merge guest cart vào cart của user sau khi login")
+    @PostMapping("/merge")
+    public ResponseEntity<ApiResponse<CartResponse>> mergeCart(@RequestBody MergeCartRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Cart merged successfully", cartService.mergeCart(request)));
     }
 }
