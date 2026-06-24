@@ -1,4 +1,4 @@
-package com.petbuddy.petbuddystore.session;
+package com.petbuddy.petbuddystore.dto.cart;
 
 import lombok.*;
 
@@ -11,7 +11,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class CartItemSession {
+public class CartItemData {
     private UUID cartItemId;
 
     private UUID productId;

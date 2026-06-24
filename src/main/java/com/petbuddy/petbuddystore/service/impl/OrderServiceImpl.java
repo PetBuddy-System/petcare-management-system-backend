@@ -121,7 +121,8 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(total);
         order.setFinalAmount(finalAmount);
         orderRepository.save(order);
-//        cartService.clearCart();
+        user.setCartData(null);
+        userRepository.save(user);
         return orderMapper.toOrderResponse(order);
     }
 
