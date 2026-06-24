@@ -64,14 +64,6 @@ public class ProductBatchController {
         return ResponseEntity.ok(ApiResponse.success(productBatchService.getBatchesByProduct(productId, keyword, status, sortBy, pageable)));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    @GetMapping("/api/batches/{batchId}")
-    @Operation(summary = "Get batch detail",
-            description = "Lấy chi tiết một batch theo batchId để hiển thị hoặc chỉnh sửa."
-    )
-    public ResponseEntity<ApiResponse<ProductBatchResponse>> getBatchDetail(@PathVariable UUID batchId) {
-        return ResponseEntity.ok(ApiResponse.success(productBatchService.getBatchDetail(batchId)));
-    }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @PatchMapping("/api/batches/{batchId}")

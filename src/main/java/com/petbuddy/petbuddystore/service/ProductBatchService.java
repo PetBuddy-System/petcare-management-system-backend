@@ -18,8 +18,6 @@ public interface ProductBatchService {
 
     Page<ProductBatchResponse> getBatchesByProduct(UUID productId, String keyword, ProductStatus status, String sortBy, Pageable pageable);
 
-    ProductBatchResponse getBatchDetail(UUID batchId);
-
     ProductBatchResponse updateBatch(UUID batchId, ProductBatchUpdateRequest request);
 
     void deleteDeletedBatchesOlderThan90Days();

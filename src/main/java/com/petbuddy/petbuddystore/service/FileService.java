@@ -12,5 +12,6 @@ public interface FileService {
 
     String uploadBlogImage(MultipartFile file);
 
+    String uploadProductImageFromBytes(byte[] bytes, String mimeType);
 
 }
