@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Transactional
@@ -285,7 +286,9 @@ public class OrderServiceImpl implements OrderService {
                 );
     }
 
-    private String generateOrderCode() {return "OD" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));}
+    private String generateOrderCode() {
+        return "OD" + ThreadLocalRandom.current().nextInt(100000, 1000000);
+    }
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

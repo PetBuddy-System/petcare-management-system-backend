@@ -32,6 +32,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CartServiceImpl implements CartService {
 
@@ -42,7 +43,6 @@ public class CartServiceImpl implements CartService {
     ObjectMapper objectMapper;
 
     @Override
-    @Transactional
     public void addToCart(AddToCartRequest request) {
         User user = getCurrentUser();
         List<CartItemData> items = loadItems(user);
@@ -76,6 +76,7 @@ public class CartServiceImpl implements CartService {
                     .productName(product.getName())
                     .price(product.getPrice())
                     .quantity(request.getQuantity())
+                    .imageUrl(getFirstImage(product))
                     .subtotal(product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
                     .build());
         }
@@ -101,7 +102,6 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
     public void removeItem(UUID productId) {
         User user = getCurrentUser();
         List<CartItemData> items = loadItems(user);
@@ -115,7 +115,6 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
     public void clearCart() {
         User user = getCurrentUser();
         user.setCartData(null);
@@ -123,7 +122,6 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
     public void updateCart(UUID cartItemId, UpdateCartItemRequest request) {
         User user = getCurrentUser();
         List<CartItemData> items = loadItems(user);
@@ -156,7 +154,6 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
     public CartResponse mergeCart(MergeCartRequest request) {
         User user = getCurrentUser();
         List<CartItemData> items = loadItems(user);
@@ -188,6 +185,7 @@ public class CartServiceImpl implements CartService {
                             .productName(product.getName())
                             .price(product.getPrice())
                             .quantity(newQuantity)
+                            .imageUrl(getFirstImage(product))
                             .subtotal(product.getPrice().multiply(BigDecimal.valueOf(newQuantity)))
                             .build());
                 }
@@ -238,5 +236,11 @@ public class CartServiceImpl implements CartService {
     private CartResponse toResponse(String userId, List<CartItemData> items) {
         CartData cartData = CartData.builder().userId(userId).items(items).build();
         return cartMapper.toCartResponse(cartData);
+    }
+    private String getFirstImage(Product product) {
+        if (product == null || product.getImageUrls() == null || product.getImageUrls().isEmpty()) {
+            return null;
+        }
+        return product.getImageUrls().getFirst();
     }
 }

@@ -24,5 +24,7 @@ public class CartItemResponse {
 
     Integer quantity;
 
+    String imageUrl;
+
     BigDecimal subtotal;
 }
