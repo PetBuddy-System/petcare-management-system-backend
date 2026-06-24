@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +22,10 @@ import java.util.UUID;
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
 @Tag(name = "Cart API", description = "Quản lý giỏ hàng")
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class CartController {
 
-    private final CartService cartService;
+    CartService cartService;
 
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/items")
