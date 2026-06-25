@@ -4,6 +4,7 @@ import com.petbuddy.petbuddystore.common.enums.ProductStatus;
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
 import com.petbuddy.petbuddystore.dto.request.ProductBatchCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductBatchUpdateRequest;
+import com.petbuddy.petbuddystore.dto.request.ProductImportRequest;
 import com.petbuddy.petbuddystore.dto.response.ProductBatchResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductImportResponse;
 import com.petbuddy.petbuddystore.service.ProductBatchService;
@@ -83,6 +84,9 @@ public class ProductBatchController {
             @RequestPart("file") MultipartFile file,
             @RequestParam(defaultValue = "false") boolean confirm
     ) {
-        return ResponseEntity.ok(ApiResponse.success(confirm ? "Import completed successfully" : "Import preview completed", productBatchService.importProductsAndBatches(file, confirm)));
+        ProductImportRequest request = new ProductImportRequest(file, confirm);
+        ProductImportResponse response = productBatchService.importProductsAndBatches(request);
+        String message = confirm ? "Import completed successfully" : "Import preview completed";
+        return ResponseEntity.ok(ApiResponse.success(message, response));
     }
 }
