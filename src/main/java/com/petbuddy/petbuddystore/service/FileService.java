@@ -10,5 +10,6 @@ public interface FileService {
     MediaFile uploadPetImage(MultipartFile file);
     MediaFile uploadBlogImage(MultipartFile file);
 
+    String uploadProductImageFromBytes(byte[] bytes, String mimeType);
 
 }

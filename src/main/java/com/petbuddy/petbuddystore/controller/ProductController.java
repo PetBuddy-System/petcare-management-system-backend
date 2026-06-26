@@ -88,7 +88,7 @@ public class ProductController {
             description = "Lấy chi tiết sản phẩm theo id. Dùng cho màn hình chi tiết sản phẩm hoặc form chỉnh sửa."
     )
     public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductDetail(@PathVariable UUID productId) {
-        return ResponseEntity.ok( ApiResponse.success(productService.getProductDetail(productId)));
+        return ResponseEntity.ok( ApiResponse.success(productService.getProduct(productId)));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")

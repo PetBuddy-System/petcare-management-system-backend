@@ -79,6 +79,15 @@ public class FileServiceImpl implements FileService {
         }
     }
 
+    @Override
+    public String uploadProductImageFromBytes(byte[] bytes, String mimeType) {
+        validateBytes(bytes, mimeType);
+        String extension = getExtensionFromMimeType(mimeType);
+        String imageKey = "products/" + UUID.randomUUID() + "." + extension;
+        return uploadToS3(bytes, mimeType, imageKey);
+    }
+
+
     private String uploadToS3(MultipartFile file, String folder) {
         validateFile(file);
 
@@ -119,6 +128,44 @@ public class FileServiceImpl implements FileService {
         if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") &&
                 !contentType.equals("image/webp") && !contentType.equals("image/jpg"))) {
             throw new AppException(ErrorCode.INVALID_FILE_TYPE);
+        }
+    }
+
+    private void validateBytes(byte[] bytes, String mimeType) {
+        if (bytes == null || bytes.length == 0) {
+            throw new AppException(ErrorCode.FILE_REQUIRED);
+        }
+        if (bytes.length > 5 * 1024 * 1024) {
+            throw new AppException(ErrorCode.FILE_TOO_LARGE);
+        }
+        if (mimeType == null || !mimeType.toLowerCase().startsWith("image/")) {
+            throw new AppException(ErrorCode.INVALID_FILE_TYPE);
+        }
+    }
+
+    private String getExtensionFromMimeType(String mimeType) {
+        String lower = mimeType.toLowerCase();
+        if (lower.contains("png")) return "png";
+        if (lower.contains("webp")) return "webp";
+        if (lower.contains("gif")) return "gif";
+        if (lower.contains("bmp")) return "bmp";
+        return "jpg";
+    }
+
+    private String uploadToS3(byte[] bytes, String mimeType, String imageKey) {
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(imageKey)
+                            .contentType(mimeType)
+                            .build(),
+                    RequestBody.fromBytes(bytes)
+            );
+            return "https://" + bucketName + ".s3.amazonaws.com/" + imageKey;
+        } catch (Exception e) {
+            log.error("Failed to upload bytes to S3: {}", e.getMessage());
+            throw new AppException(ErrorCode.UPLOAD_FAILED);
         }
     }
 }

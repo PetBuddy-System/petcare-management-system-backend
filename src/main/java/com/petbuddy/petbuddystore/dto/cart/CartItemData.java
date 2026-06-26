@@ -1,6 +1,8 @@
 package com.petbuddy.petbuddystore.dto.cart;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.springframework.boot.web.servlet.FilterRegistration;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -10,17 +12,20 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString
 public class CartItemData {
-    private UUID cartItemId;
+    UUID cartItemId;
 
-    private UUID productId;
+    UUID productId;
 
-    private String productName;
+    String productName;
 
-    private BigDecimal price;
+    BigDecimal price;
 
-    private Integer quantity;
+    Integer quantity;
 
-    private BigDecimal subtotal;
+    String imageUrl;
+
+    BigDecimal subtotal;
 }

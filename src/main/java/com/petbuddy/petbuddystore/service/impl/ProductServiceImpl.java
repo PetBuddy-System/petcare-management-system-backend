@@ -48,15 +48,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductManagementResponse createProduct(ProductCreationRequest request, List<MultipartFile> images) {
-        String productName = request.getName().trim();
-        if (productRepository.existsByNameIgnoreCase(productName)) {throw new AppException(ErrorCode.PRODUCT_EXISTED);}
+        String productName = normalizeName(request.getName());
+        if (productRepository.existsByNameIgnoreCaseAndStatusNot(productName, ProductStatus.DELETED)) {throw new AppException(ErrorCode.PRODUCT_EXISTED);}
         Category category = categoryService.getActiveCategoryEntityById(request.getCategoryId());
         Product product = productMapper.toProduct(request);
-        product.setName(productName);
         product.setProductCode(generateProductCode());
         product.setCategory(category);
-        product.setStatus(ProductStatus.ACTIVE);
-        setProductImages(product, images);
+        uploadProductImages(product, images);
         Product savedProduct = productRepository.save(product);
         return productMapper.toManagementResponse(savedProduct);
     }
@@ -79,14 +77,14 @@ public class ProductServiceImpl implements ProductService {
         Specification<Product> spec = buildProductSpec(keyword, categoryId, brandName, status);
         return productRepository.findAll(spec, sortedPageable)
                 .map(product -> {ProductManagementResponse response = productMapper.toManagementResponse(product);
-                    response.setTotalStock(getTotalStock(product));
+                    response.setTotalStock( getTotalStock(product));
                     response.setBatchCount(getBatchCount(product));
                     return response;});
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProductDetailResponse getProductDetail(UUID productId) {Product product = getProductEntityById(productId);
+    public ProductDetailResponse getProduct(UUID productId) {Product product = getProductEntityById(productId);
         ProductDetailResponse response = productMapper.toDetailResponse(product);
         if (product.getCategory() != null) {
             response.setCategoryId(product.getCategory().getCategoryId());
@@ -103,8 +101,8 @@ public class ProductServiceImpl implements ProductService {
         Product product = getProductEntityById(productId);
         List<MultipartFile> safeImages = images == null ? null : new ArrayList<>(images);
         if (request.getName() != null && !request.getName().isBlank()) {
-            String newName = request.getName().trim();
-            productRepository.findByNameIgnoreCase(newName)
+            String newName = normalizeName(request.getName());
+            productRepository.findByNameIgnoreCaseAndStatusNot(newName, ProductStatus.DELETED)
                     .filter(existedProduct -> !existedProduct.getProductId().equals(productId))
                     .ifPresent(existedProduct -> {throw new AppException(ErrorCode.PRODUCT_EXISTED);});
             request.setName(newName);
@@ -112,7 +110,7 @@ public class ProductServiceImpl implements ProductService {
         productMapper.updateProduct(product, request);
         if (request.getCategoryId() != null) {Category category = categoryService.getActiveCategoryEntityById(request.getCategoryId());product.setCategory(category);}
         if (request.getStatus() != null) {updateStatus(product, request.getStatus());}
-        setProductImages(product, safeImages);
+        uploadProductImages(product, safeImages);
         Product savedProduct = productRepository.save(product);
         return productMapper.toManagementResponse(savedProduct);
     }
@@ -131,27 +129,35 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product getProductEntityByName(String name) {return productRepository.findByNameIgnoreCase(name.trim()).orElse(null);}
+    public Product getProductEntityByName(String name) {return productRepository.findByNameIgnoreCaseAndStatusNot(normalizeName(name), ProductStatus.DELETED).orElse(null);}
 
     @Override
     @Transactional
-    public Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category) {
-        Product product = Product.builder()
+    public Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category, String ingredients, String usageInstructions, List<String> imageUrls) {
+        Product.ProductBuilder builder = Product.builder()
                 .name(name.trim())
                 .description(description)
                 .price(price)
                 .brandName(brandName)
                 .category(category)
+                .ingredients(ingredients)
+                .usageInstructions(usageInstructions)
                 .productCode(generateProductCode())
-                .status(ProductStatus.ACTIVE)
-                .deletedAt(null).build();
-        return productRepository.save(product);
+                .status(ProductStatus.ACTIVE);
+        if (imageUrls != null && !imageUrls.isEmpty()) {builder.imageUrls(imageUrls);}
+        return productRepository.save(builder.build());
+    }
+
+    @Override
+    @Transactional
+    public void updateLastBatchSequence(Product product, long lastBatchSequence) {
+        product.setLastBatchSequence(lastBatchSequence);
+        productRepository.save(product);
     }
 
     private void updateStatus(Product product, ProductStatus status) {
 
-        if (status == ProductStatus.DELETED
-                && productBatchRepository.existsByProduct_ProductIdAndStatusIn(
+        if (status == ProductStatus.DELETED && productBatchRepository.existsByProduct_ProductIdAndStatusIn(
                 product.getProductId(),
                 List.of(ProductStatus.ACTIVE, ProductStatus.INACTIVE)
         )) {throw new AppException(ErrorCode.PRODUCT_HAS_BATCHES);}
@@ -184,7 +190,8 @@ public class ProductServiceImpl implements ProductService {
             if (keyword != null && !keyword.isBlank()) {predicates.add(cb.like(cb.lower(root.get("name")), "%" + keyword.trim().toLowerCase() + "%"));}
             if (categoryId != null) {predicates.add(cb.equal(root.get("category").get("categoryId"), categoryId));}
             if (brandName != null && !brandName.isBlank()) {predicates.add(cb.like(cb.lower(root.get("brandName")), "%" + brandName.trim().toLowerCase() + "%"));}
-            if (status != null) {predicates.add(cb.equal(root.get("status"), status));}
+            if (status != null) {predicates.add(cb.equal(root.get("status"), status));
+            } else {predicates.add(cb.notEqual(root.get("status"), ProductStatus.DELETED));}
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
@@ -200,10 +207,14 @@ public class ProductServiceImpl implements ProductService {
         return (int) product.getBatches().stream().filter(batch -> batch.getStatus() != ProductStatus.DELETED).count();
     }
 
-    private void setProductImages(Product product, List<MultipartFile> images) {
+    private void uploadProductImages(Product product, List<MultipartFile> images) {
         if (images == null || images.isEmpty()) {return;}
         if (images.size() > 4) {throw new AppException(ErrorCode.PRODUCT_IMAGE_LIMIT_EXCEEDED);}
         List<String> imageUrls = images.stream().filter(image -> image != null && !image.isEmpty()).map(fileService::uploadProductImage).toList();
         if (!imageUrls.isEmpty()) {product.setImageUrls(imageUrls);}
+    }
+
+    private String normalizeName(String name) {
+        return name.trim().replaceAll("\\s+", " ");
     }
 }

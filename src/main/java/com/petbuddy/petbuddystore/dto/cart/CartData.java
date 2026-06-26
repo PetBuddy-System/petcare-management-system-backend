@@ -1,6 +1,7 @@
 package com.petbuddy.petbuddystore.dto.cart;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CartData {
-    private String userId;
+    String userId;
 
     @Builder.Default
-    private List<CartItemData> items = new ArrayList<>();
+    List<CartItemData> items = new ArrayList<>();
 }
