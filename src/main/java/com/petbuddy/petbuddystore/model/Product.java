@@ -83,4 +83,8 @@ public class Product {
 
     @Builder.Default
     Long lastBatchSequence = 0L;
+
+    @OneToMany(mappedBy = "product")
+    @Builder.Default
+    List<PromotionDetail> promotionDetails = new ArrayList<>();
 }
