@@ -1,7 +1,11 @@
 package com.petbuddy.petbuddystore.service.impl;
 
+import com.petbuddy.petbuddystore.common.enums.FileType;
+import com.petbuddy.petbuddystore.common.enums.MediaPurpose;
+import com.petbuddy.petbuddystore.common.enums.MediaStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
+import com.petbuddy.petbuddystore.model.MediaFile;
 import com.petbuddy.petbuddystore.service.FileService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,23 +19,19 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.util.ArrayList;
-import java.util.List;
+
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class FileServiceImpl implements FileService {
-
     S3Client s3Client;
 
     @NonFinal
     @Value("${aws.s3.bucket}")
     String bucketName;
-
 
     @Override
     public String uploadProductImage(MultipartFile file) {
@@ -39,13 +39,44 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public String uploadPetImage(MultipartFile file) {
-        return uploadToS3(file, "pets");
+    public MediaFile uploadPetImage(MultipartFile file) {
+        return uploadImage(file, MediaPurpose.PET_PROFILE, "pets");
     }
 
     @Override
-    public String uploadBlogImage(MultipartFile file) {
-        return uploadToS3(file, "blogs");
+    public MediaFile uploadBlogImage(MultipartFile file) {
+        return uploadImage(file, MediaPurpose.BLOG, "blogs");
+    }
+
+    private MediaFile uploadImage(MultipartFile file, MediaPurpose mediaPurpose, String folder) {
+        validateFile(file);
+
+        try {
+            String fileKey = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(fileKey)
+                            .contentType(file.getContentType())
+                            .build(),
+                    RequestBody.fromBytes(file.getBytes())
+            );
+
+            String fileUrl = buildFileUrl(fileKey);
+            return MediaFile.builder()
+                    .fileUrl(fileUrl)
+                    .fileKey(fileKey)
+                    .fileSize(file.getSize())
+                    .fileType(FileType.IMAGE)
+                    .mediaPurpose(mediaPurpose)
+                    .mediaStatus(MediaStatus.ACTIVE)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Upload image failed: {}", e.getMessage());
+            throw new AppException(ErrorCode.UPLOAD_FAILED);
+        }
     }
 
     private String uploadToS3(MultipartFile file, String folder) {
@@ -69,6 +100,10 @@ public class FileServiceImpl implements FileService {
             log.error(e.getMessage());
             throw new AppException(ErrorCode.UPLOAD_FAILED);
         }
+    }
+
+    private String buildFileUrl(String fileKey){
+        return "https://" + bucketName + ".s3.amazonaws.com/" + fileKey;
     }
 
     private void validateFile(MultipartFile file) {
