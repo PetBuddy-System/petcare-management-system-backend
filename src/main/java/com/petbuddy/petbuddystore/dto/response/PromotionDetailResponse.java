@@ -7,7 +7,8 @@ import lombok.experimental.FieldDefaults;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,5 +21,6 @@ public class PromotionDetailResponse {
     BigDecimal price;
     DiscountType discountType;
     BigDecimal discountValue;
-    BigDecimal discountedPrice;
+    BigDecimal salePrice;
+    BigDecimal discountAmount;
 }

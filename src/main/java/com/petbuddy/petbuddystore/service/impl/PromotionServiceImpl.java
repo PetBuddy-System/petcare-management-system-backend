@@ -7,12 +7,16 @@ import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.request.PromotionRequest;
 import com.petbuddy.petbuddystore.dto.request.PromotionDetailRequest;
+import com.petbuddy.petbuddystore.dto.request.PromotionUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.PromotionListResponse;
 import com.petbuddy.petbuddystore.dto.response.PromotionResponse;
+import com.petbuddy.petbuddystore.dto.response.PromotionDetailResponse;
 import com.petbuddy.petbuddystore.mapper.PromotionMapper;
 import com.petbuddy.petbuddystore.model.Product;
 import com.petbuddy.petbuddystore.model.Promotion;
 import com.petbuddy.petbuddystore.model.PromotionDetail;
 import com.petbuddy.petbuddystore.repository.ProductRepository;
+import com.petbuddy.petbuddystore.repository.PromotionDetailRepository;
 import com.petbuddy.petbuddystore.repository.PromotionRepository;
 import com.petbuddy.petbuddystore.service.PromotionService;
 import jakarta.persistence.criteria.Predicate;
@@ -28,6 +32,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -40,6 +45,7 @@ public class PromotionServiceImpl implements PromotionService {
     PromotionRepository promotionRepository;
     ProductRepository productRepository;
     PromotionMapper promotionMapper;
+    PromotionDetailRepository promotionDetailRepository;
 
     @Override
     public PromotionResponse createPromotion(PromotionRequest request) {
@@ -78,15 +84,15 @@ public class PromotionServiceImpl implements PromotionService {
         promotion.setUpdatedAt(LocalDateTime.now());
 
         Promotion saved = promotionRepository.save(promotion);
-        return promotionMapper.toPromotionResponse(saved);
+        return convertToPromotionResponseWithCalculations(saved);
     }
 
     @Override
-    public Page<PromotionResponse> getPromotions(String keyword, PromotionStatus status, Pageable pageable, String sortBy) {
+    public Page<PromotionListResponse> getPromotions(String keyword, PromotionStatus status, Pageable pageable, String sortBy) {
         Pageable resolvedPageable = buildPageable(pageable, sortBy);
         Specification<Promotion> spec = buildPromotionSpec(keyword, status);
         return promotionRepository.findAll(spec, resolvedPageable)
-                .map(promotionMapper::toPromotionResponse);
+                .map(promotionMapper::toListPromotionResponse);
     }
 
     @Override
@@ -98,19 +104,17 @@ public class PromotionServiceImpl implements PromotionService {
             throw new AppException(ErrorCode.PROMOTION_NOT_FOUND);
         }
 
-        return promotionMapper.toPromotionResponse(promotion);
+        return convertToPromotionResponseWithCalculations(promotion);
     }
 
     @Override
-    public PromotionResponse updatePromotion(UUID id, PromotionRequest request) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.PROMOTION_NOT_FOUND));
+    public PromotionResponse updatePromotion(UUID id, PromotionUpdateRequest request) {
+        Promotion promotion = promotionRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PROMOTION_NOT_FOUND));
 
         if (promotion.getStatus() == PromotionStatus.DELETED || promotion.getDeletedAt() != null) {
             throw new AppException(ErrorCode.PROMOTION_NOT_FOUND);
         }
 
-        // Validate date order if dates are present/updated
         LocalDateTime newStart = request.getStartDate() != null ? request.getStartDate() : promotion.getStartDate();
         LocalDateTime newEnd = request.getEndDate() != null ? request.getEndDate() : promotion.getEndDate();
         if (newStart != null && newEnd != null && (newStart.isAfter(newEnd) || newStart.isEqual(newEnd))) {
@@ -129,6 +133,7 @@ public class PromotionServiceImpl implements PromotionService {
         }
 
         if (request.getPromotionDetails() != null) {
+            promotionDetailRepository.deleteAll(promotion.getPromotionDetails());
             promotion.getPromotionDetails().clear();
             for (PromotionDetailRequest detailReq : request.getPromotionDetails()) {
                 Product product = productRepository.findById(detailReq.getProductId())
@@ -153,7 +158,60 @@ public class PromotionServiceImpl implements PromotionService {
 
         promotion.setUpdatedAt(LocalDateTime.now());
         Promotion saved = promotionRepository.save(promotion);
-        return promotionMapper.toPromotionResponse(saved);
+
+        return convertToPromotionResponseWithCalculations(saved);
+    }
+
+    @Override
+    public boolean hasActivePromotion(UUID productId) {
+        return promotionDetailRepository.existsByProduct_ProductIdAndPromotion_Status(productId, PromotionStatus.ACTIVE);
+    }
+
+    @Override
+    public BigDecimal calculateSalePrice(Product product, PromotionDetail detail) {
+        BigDecimal price = product.getPrice();
+        BigDecimal discountAmount = calculateDiscountAmount(price, detail.getDiscountType(), detail.getDiscountValue());
+        return price.subtract(discountAmount).max(BigDecimal.ZERO);
+    }
+
+    private BigDecimal calculateDiscountAmount(BigDecimal price, DiscountType type, BigDecimal value) {
+        if (price == null || value == null) {
+            return BigDecimal.ZERO;
+        }
+
+        if (type == DiscountType.PERCENTAGE) {
+            return price.multiply(value)
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        } else if (type == DiscountType.FIXED) {
+            return value.min(price);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private PromotionResponse convertToPromotionResponseWithCalculations(Promotion promotion) {
+        PromotionResponse response = promotionMapper.toPromotionResponse(promotion);
+        if (response.getPromotionDetails() != null && !response.getPromotionDetails().isEmpty()) {
+            for (PromotionDetailResponse detailResponse : response.getPromotionDetails()) {
+                PromotionDetail detail = promotion.getPromotionDetails().stream()
+                        .filter(d -> d.getPromotionDetailId().equals(detailResponse.getPromotionDetailId()))
+                        .findFirst()
+                        .orElse(null);
+                if (detail != null) {
+                    BigDecimal discountAmount = calculateDiscountAmount(
+                            detailResponse.getPrice(),
+                            detail.getDiscountType(),
+                            detail.getDiscountValue()
+                    );
+                    BigDecimal salePrice = detailResponse.getPrice().subtract(discountAmount);
+                    if (salePrice.compareTo(BigDecimal.ZERO) < 0) {
+                        salePrice = BigDecimal.ZERO;
+                    }
+                    detailResponse.setDiscountAmount(discountAmount);
+                    detailResponse.setSalePrice(salePrice);
+                }
+            }
+        }
+        return response;
     }
 
     private void validateDiscount(DiscountType type, BigDecimal value, BigDecimal price) {
@@ -188,7 +246,7 @@ public class PromotionServiceImpl implements PromotionService {
             } else {
                 predicates.add(cb.notEqual(root.get("status"), PromotionStatus.DELETED));
             }
-
+            predicates.add(cb.isNull(root.get("deletedAt")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
@@ -202,7 +260,9 @@ public class PromotionServiceImpl implements PromotionService {
         if (field.equals("date")) {
             field = "startDate";
         }
-        Sort.Direction direction = (parts.length > 1 && parts[1].equalsIgnoreCase("asc")) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = (parts.length > 1 && parts[1].equalsIgnoreCase("asc"))
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
 
         Set<String> allowedFields = Set.of("name", "startDate", "endDate", "status", "createdAt");
         if (!allowedFields.contains(field)) {

@@ -3,6 +3,8 @@ package com.petbuddy.petbuddystore.controller;
 import com.petbuddy.petbuddystore.common.enums.PromotionStatus;
 import com.petbuddy.petbuddystore.common.response.ApiResponse;
 import com.petbuddy.petbuddystore.dto.request.PromotionRequest;
+import com.petbuddy.petbuddystore.dto.request.PromotionUpdateRequest;
+import com.petbuddy.petbuddystore.dto.response.PromotionListResponse;
 import com.petbuddy.petbuddystore.dto.response.PromotionResponse;
 import com.petbuddy.petbuddystore.service.PromotionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,7 +46,7 @@ public class PromotionController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @Operation(summary = "Danh sách tất cả promotion", description = "Lấy danh sách tất cả promotion có phân trang, filter theo status và tìm kiếm theo tên hoặc mô tả.")
-    public ResponseEntity<ApiResponse<Page<PromotionResponse>>> getPromotions(
+    public ResponseEntity<ApiResponse<Page<PromotionListResponse>>> getPromotions(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PromotionStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -73,7 +75,7 @@ public class PromotionController {
     @Operation(summary = "Cập nhật promotion", description = "Cập nhật thông tin chương trình khuyến mãi (thời gian, trạng thái, danh sách sản phẩm, mức giảm giá...).")
     public ResponseEntity<ApiResponse<PromotionResponse>> updatePromotion(
             @PathVariable UUID promotionId,
-            @Valid @RequestBody PromotionRequest request
+            @Valid @RequestBody PromotionUpdateRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Cập nhật chương trình khuyến mãi thành công",

@@ -27,7 +27,6 @@ public class Promotion {
     @Column(name = "promotion_id")
     UUID promotionId;
 
-    @NotBlank(message = "PROMOTION_NAME_REQUIRED")
     @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     String name;
 

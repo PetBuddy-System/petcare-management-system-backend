@@ -1,16 +1,17 @@
 package com.petbuddy.petbuddystore.service.impl;
 
+import com.petbuddy.petbuddystore.common.enums.DiscountType;
 import com.petbuddy.petbuddystore.common.enums.ProductStatus;
 import com.petbuddy.petbuddystore.common.enums.PromotionStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
-import com.petbuddy.petbuddystore.dto.response.ProductDetailResponse;
+import com.petbuddy.petbuddystore.dto.response.ProductBaseResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
-import com.petbuddy.petbuddystore.dto.response.ProductPromotionResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.mapper.ProductMapper;
+import com.petbuddy.petbuddystore.mapper.PromotionMapper;
 import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import com.petbuddy.petbuddystore.model.ProductBatch;
@@ -21,6 +22,7 @@ import com.petbuddy.petbuddystore.repository.PromotionDetailRepository;
 import com.petbuddy.petbuddystore.service.CategoryService;
 import com.petbuddy.petbuddystore.service.FileService;
 import com.petbuddy.petbuddystore.service.ProductService;
+import com.petbuddy.petbuddystore.service.PromotionService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -48,12 +51,16 @@ public class ProductServiceImpl implements ProductService {
     CategoryService categoryService;
     FileService fileService;
     ProductMapper productMapper;
+    PromotionMapper promotionMapper;
+    PromotionService promotionService;
 
     @Override
     @Transactional
     public ProductManagementResponse createProduct(ProductCreationRequest request, List<MultipartFile> images) {
         String productName = normalizeName(request.getName());
-        if (productRepository.existsByNameIgnoreCaseAndStatusNot(productName, ProductStatus.DELETED)) {throw new AppException(ErrorCode.PRODUCT_EXISTED);}
+        if (productRepository.existsByNameIgnoreCaseAndStatusNot(productName, ProductStatus.DELETED)) {
+            throw new AppException(ErrorCode.PRODUCT_EXISTED);
+        }
         Category category = categoryService.getActiveCategoryEntityById(request.getCategoryId());
         Product product = productMapper.toProduct(request);
         product.setProductCode(generateProductCode());
@@ -137,152 +144,67 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductPublicResponse> getProductsForUser(String keyword, Long categoryId, String brandName, String sortBy, Pageable pageable) {
-        return productRepository.findAll(buildProductSpec(keyword, categoryId, brandName, ProductStatus.ACTIVE),
-                        buildPageable(pageable, sortBy, "date_desc", "price_asc", "price_desc", "date_asc", "date_desc"))
-                .map(product -> {
-                    ProductPublicResponse response = productMapper.toPublicResponse(product);
+        Pageable sortedPageable = buildPageable(pageable, sortBy);
+        Specification<Product> spec = buildProductSpec(keyword, categoryId, brandName, ProductStatus.ACTIVE);
+        return productRepository.findAll(spec, sortedPageable)
+                .map(product -> {ProductPublicResponse response = productMapper.toPublicResponse(product);
                     response.setTotalStock(getTotalStock(product));
-                    return response;
-                });
+                    response.setHasActivePromotion(promotionService.hasActivePromotion(product.getProductId()));
+                    return response;});
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductManagementResponse> getProductsForManagement(String keyword, Long categoryId, String brandName, ProductStatus status, String sortBy, Pageable pageable) {
-        return productRepository.findAll(buildProductSpec(keyword, categoryId, brandName, status),
-                        buildPageable(pageable, sortBy, "date_desc", "price_asc", "price_desc", "date_asc", "date_desc"))
+    public Page<ProductManagementResponse> getProductsForManagement(String keyword, Long categoryId, String brandName, ProductStatus status, String sortBy, Pageable pageable, Integer nearExpiredDays) {
+        Pageable sortedPageable = buildPageable(pageable, sortBy);
+        Specification<Product> spec = buildProductSpec(keyword, categoryId, brandName, status, nearExpiredDays);
+        return productRepository.findAll(spec, sortedPageable)
                 .map(product -> {
                     ProductManagementResponse response = productMapper.toManagementResponse(product);
                     response.setTotalStock(getTotalStock(product));
                     response.setBatchCount(getBatchCount(product));
+                    setNearExpiredInfo(product, response, nearExpiredDays);
+                    response.setHasActivePromotion(promotionService.hasActivePromotion(product.getProductId()));
                     return response;
                 });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProductDetailResponse getProduct(UUID productId) {
+    public ProductPublicResponse getProduct(UUID productId) {
         Product product = getProductEntityById(productId);
-        ProductDetailResponse response = productMapper.toDetailResponse(product);
+        ProductPublicResponse response = productMapper.toDetailPublicResponse(product);
+        Optional.ofNullable(product.getCategory()).ifPresent(cat -> {
+            response.setCategoryId(cat.getCategoryId());
+            response.setCategoryName(cat.getName());
+        });
+        response.setTotalStock(getTotalStock(product));
+        return setPromotionInfo(response, product);
+
+    }
+
+    @Override
+    public ProductManagementResponse getProductManagement(UUID productId) {
+        Product product = getProductEntityById(productId);
+        ProductManagementResponse response = productMapper.toManagementResponse(product);
         Optional.ofNullable(product.getCategory()).ifPresent(cat -> {
             response.setCategoryId(cat.getCategoryId());
             response.setCategoryName(cat.getName());
         });
         response.setTotalStock(getTotalStock(product));
         response.setBatchCount(getBatchCount(product));
-        return response;
+        return setPromotionInfo(response, product);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductPromotionResponse> getProductsForPromotion(String keyword, Long categoryId, String brandName, Integer nearExpiredDays, String sortBy, Pageable pageable) {
-        List<Product> products = productRepository.findAll(buildProductSpec(keyword, categoryId, brandName, ProductStatus.ACTIVE, nearExpiredDays));
-
-        if (products.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, 0);
-        }
-
-        List<UUID> productIds = products.stream().map(Product::getProductId).toList();
-
-        Map<UUID, List<ProductBatch>> batchesByProduct = productBatchRepository
-                .findByProduct_ProductIdInAndStatusAndDeletedAtIsNull(productIds, ProductStatus.ACTIVE)
-                .stream()
-                .collect(Collectors.groupingBy(b -> b.getProduct().getProductId()));
-
-        Set<UUID> activePromotionProductIds = getActivePromotionProductIds(promotionDetailRepository.findByProduct_ProductIdInAndPromotion_Status(productIds, PromotionStatus.ACTIVE));
-
-        LocalDate expiryThreshold = nearExpiredDays != null ? LocalDate.now().plusDays(nearExpiredDays) : null;
-
-        List<ProductPromotionResponse> responses = products.stream()
-                .map(product -> {
-                    ProductPromotionResponse response = productMapper.toPromotionResponse(product);
-                    populateBatchStats(response, batchesByProduct.getOrDefault(product.getProductId(), Collections.emptyList()), expiryThreshold);
-                    response.setHasActivePromotion(activePromotionProductIds.contains(product.getProductId()));
-                    return response;
-                })
-                .sorted(getComparator(sortBy))
-                .collect(Collectors.toList());
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), responses.size());
-
-        if (start >= responses.size()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, responses.size());
-        }
-        return new PageImpl<>(responses.subList(start, end), pageable, responses.size());
-    }
-
-    private Pageable buildPageable(Pageable pageable, String sortBy, String defaultSort, String... allowedSorts) {
-        if (sortBy == null) sortBy = defaultSort;
-
-        Set<String> allowed = new HashSet<>(Arrays.asList(allowedSorts));
-        if (!allowed.contains(sortBy)) {
-            throw new AppException(ErrorCode.INVALID_SORT_OPTION);
-        }
-
-        String field = switch (sortBy) {
-            case "price_asc", "price_desc" -> "price";
-            case "date_asc", "date_desc" -> "createdAt";
-            case "name_asc", "name_desc" -> "name";
+    private Pageable buildPageable(Pageable pageable, String sortBy) {
+        Sort sort = switch (sortBy == null ? "date_desc" : sortBy) {
+            case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "price");
+            case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
             default -> throw new AppException(ErrorCode.INVALID_SORT_OPTION);
         };
-        Sort.Direction direction = sortBy.endsWith("_desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, field));
-    }
-
-    private Comparator<ProductPromotionResponse> getComparator(String sortBy) {
-        if (sortBy == null) return Comparator.comparing(ProductPromotionResponse::getName);
-
-        return switch (sortBy) {
-            case "name_asc" -> Comparator.comparing(ProductPromotionResponse::getName);
-            case "name_desc" -> Comparator.comparing(ProductPromotionResponse::getName).reversed();
-            case "price_asc" -> Comparator.comparing(ProductPromotionResponse::getPrice);
-            case "price_desc" -> Comparator.comparing(ProductPromotionResponse::getPrice).reversed();
-            case "nearExpiredStock_asc" -> Comparator.comparing(r -> r.getNearExpiredStock() != null ? r.getNearExpiredStock() : 0L);
-            case "nearExpiredStock_desc" -> Comparator.comparing((ProductPromotionResponse r) -> r.getNearExpiredStock() != null ? r.getNearExpiredStock() : 0L).reversed();
-            case "totalStock_asc" -> Comparator.comparing(r -> r.getTotalStock() != null ? r.getTotalStock() : 0L);
-            case "totalStock_desc" -> Comparator.comparing((ProductPromotionResponse r) -> r.getTotalStock() != null ? r.getTotalStock() : 0L).reversed();
-            default -> throw new AppException(ErrorCode.INVALID_SORT_OPTION);
-        };
-    }
-
-    private Set<UUID> getActivePromotionProductIds(List<PromotionDetail> promotionDetails) {
-        LocalDateTime now = LocalDateTime.now();
-        return promotionDetails.stream()
-                .filter(pd -> {
-                    var promo = pd.getPromotion();
-                    if (promo == null) return false;
-                    return (promo.getStartDate() == null || !promo.getStartDate().isAfter(now)) && (promo.getEndDate() == null || !promo.getEndDate().isBefore(now));
-                })
-                .map(pd -> pd.getProduct().getProductId())
-                .collect(Collectors.toSet());
-    }
-
-    private void populateBatchStats(ProductPromotionResponse response, List<ProductBatch> batches, LocalDate expiryThreshold) {
-        long totalStock = 0;
-        long nearExpiredStock = 0;
-        long nearExpiredBatchCount = 0;
-        LocalDate nearestExpiryDate = null;
-
-        for (ProductBatch batch : batches) {
-            int qty = batch.getStockQuantity() == null ? 0 : batch.getStockQuantity();
-            totalStock += qty;
-
-            LocalDate expiry = batch.getExpiryDate();
-            if (expiry != null) {
-                if (nearestExpiryDate == null || expiry.isBefore(nearestExpiryDate)) {
-                    nearestExpiryDate = expiry;
-                }
-                if (expiryThreshold != null && !expiry.isAfter(expiryThreshold)) {
-                    nearExpiredStock += qty;
-                    nearExpiredBatchCount++;
-                }
-            }
-        }
-        response.setTotalStock(totalStock);
-        response.setNearExpiredStock(nearExpiredStock);
-        response.setNearExpiredBatchCount(nearExpiredBatchCount);
-        response.setNearestExpiryDate(nearestExpiryDate);
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     private void updateStatus(Product product, ProductStatus status) {
@@ -377,5 +299,108 @@ public class ProductServiceImpl implements ProductService {
 
     private String normalizeName(String name) {
         return name.trim().replaceAll("\\s+", " ");
+    }
+
+    private <T extends ProductBaseResponse> T setPromotionInfo(T response, Product product) {
+
+        Optional<PromotionDetail> detailOpt = promotionDetailRepository.findByProduct_ProductIdAndPromotion_Status(product.getProductId(), PromotionStatus.ACTIVE);
+        if (detailOpt.isEmpty()) {
+            response.setHasActivePromotion(false);
+            return response;
+        }
+
+        PromotionDetail detail = detailOpt.get();
+        var promotion = detail.getPromotion();
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(promotion.getStartDate()) || now.isAfter(promotion.getEndDate())) {
+            response.setHasActivePromotion(false);
+            return response;
+        }
+
+        BigDecimal discountAmount = calculateDiscountAmount(
+                product.getPrice(),
+                detail.getDiscountType(),
+                detail.getDiscountValue()
+        );
+
+        promotionMapper.updatePromotionInfo(response, promotion, detail);
+        response.setHasActivePromotion(true);
+        response.setDiscountAmount(discountAmount);
+        response.setSalePrice(product.getPrice().subtract(discountAmount).max(BigDecimal.ZERO));
+        return response;
+    }
+
+    private BigDecimal calculateDiscountAmount(BigDecimal price, DiscountType type, BigDecimal value) {
+        if (price == null || value == null) {
+            return BigDecimal.ZERO;
+        }
+
+        if (type == DiscountType.PERCENTAGE) {
+            return price.multiply(value)
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        } else if (type == DiscountType.FIXED) {
+            return value.min(price);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private void setNearExpiredInfo(Product product, ProductManagementResponse response, Integer nearExpiredDays) {
+        if (product.getBatches() == null || product.getBatches().isEmpty()) {
+            response.setNearExpiredStock(0L);
+            response.setNearExpiredBatchCount(0L);
+            response.setNearestExpiryDate(null);
+            return;
+        }
+
+        List<ProductBatch> activeBatches = product.getBatches().stream()
+                .filter(b -> b.getStatus() == ProductStatus.ACTIVE)
+                .filter(b -> b.getStockQuantity() != null && b.getStockQuantity() > 0)
+                .filter(b -> b.getExpiryDate() != null)
+                .toList();
+
+        if (activeBatches.isEmpty()) {
+            response.setNearExpiredStock(0L);
+            response.setNearExpiredBatchCount(0L);
+            response.setNearestExpiryDate(null);
+            return;
+        }
+
+        LocalDate nearestExpiry = activeBatches.stream()
+                .map(ProductBatch::getExpiryDate)
+                .min(LocalDate::compareTo)
+                .orElse(null);
+
+        LocalDate threshold;
+        if (nearExpiredDays != null && nearExpiredDays > 0) {
+            threshold = LocalDate.now().plusDays(nearExpiredDays);
+        } else {
+            threshold = LocalDate.now();
+        }
+
+        long nearExpiredStock = activeBatches.stream()
+                .filter(b -> {
+                    if (nearExpiredDays != null && nearExpiredDays > 0) {
+                        return b.getExpiryDate().isBefore(threshold) || b.getExpiryDate().isEqual(threshold);
+                    } else {
+                        return b.getExpiryDate().isAfter(LocalDate.now());
+                    }
+                })
+                .mapToLong(b -> b.getStockQuantity() != null ? b.getStockQuantity() : 0)
+                .sum();
+
+        long nearExpiredBatchCount = activeBatches.stream()
+                .filter(b -> {
+                    if (nearExpiredDays != null && nearExpiredDays > 0) {
+                        return b.getExpiryDate().isBefore(threshold) || b.getExpiryDate().isEqual(threshold);
+                    } else {
+                        return b.getExpiryDate().isAfter(LocalDate.now());
+                    }
+                })
+                .count();
+
+        response.setNearExpiredStock(nearExpiredStock);
+        response.setNearExpiredBatchCount(nearExpiredBatchCount);
+        response.setNearestExpiryDate(nearestExpiry);
     }
 }
