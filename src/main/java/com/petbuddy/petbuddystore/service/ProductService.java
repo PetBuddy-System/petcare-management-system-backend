@@ -24,7 +24,7 @@ public interface ProductService {
 
     Page<ProductManagementResponse> getProductsForManagement(String keyword, Long categoryId, String brandName, ProductStatus status, String sortBy, Pageable pageable );
 
-    ProductDetailResponse getProductDetail(UUID productId);
+    ProductDetailResponse getProduct(UUID productId);
 
     ProductManagementResponse updateProduct(UUID productId, ProductUpdateRequest request, List<MultipartFile> images);
 
@@ -34,4 +34,7 @@ public interface ProductService {
 
     Product getProductEntityByName(String name);
 
-    Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category);}
+    Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category, String ingredients, String usageInstructions, List<String> imageUrls);
+
+    void updateLastBatchSequence(Product product, long lastBatchSequence);
+}

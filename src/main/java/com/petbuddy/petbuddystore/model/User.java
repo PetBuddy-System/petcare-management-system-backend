@@ -57,7 +57,7 @@ public class User {
     LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<Pet> pets = new ArrayList<>();
+    List<PetProfile> petProfiles = new ArrayList<>();
 
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, orphanRemoval = true)
     List<StaffSchedule> staffSchedules = new ArrayList<>();

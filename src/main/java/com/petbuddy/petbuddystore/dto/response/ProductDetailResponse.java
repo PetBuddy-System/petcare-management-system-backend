@@ -23,6 +23,10 @@ public class ProductDetailResponse {
 
     String description;
 
+    String ingredients;
+
+    String usageInstructions;
+
     BigDecimal price;
 
     String brandName;
