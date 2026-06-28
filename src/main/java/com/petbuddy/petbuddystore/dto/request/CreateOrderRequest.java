@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateOrderRequest {
-    String userName;
+    String recipientName;
     String phoneNumber;
     String address;
     String note;

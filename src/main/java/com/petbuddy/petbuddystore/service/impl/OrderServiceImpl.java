@@ -70,7 +70,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = Order.builder()
                 .orderCode(generateOrderCode())
                 .user(user)
-                .recipientName(request.getUserName())
+                .recipientName(request.getRecipientName())
                 .phoneNumber(request.getPhoneNumber())
                 .address(request.getAddress())
                 .note(request.getNote())

@@ -40,7 +40,7 @@ public class PaymentServiceImpl implements PaymentService {
     final OrderRepository orderRepository;
     final PaymentMapper paymentMapper;
 
-    @Value("${STRIPE_WEBHOOK_SECRET}")
+    @Value("${webhook.secret-key}")
     String webhookSecret;
 
     @Override

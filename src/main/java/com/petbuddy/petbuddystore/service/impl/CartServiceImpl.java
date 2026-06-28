@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -120,6 +121,36 @@ public class CartServiceImpl implements CartService {
         item.setQuantity(request.getQuantity());
         item.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())));
         cartRepository.save(cart);
+    }
+
+    @Override
+    public CartResponse mergeCart(MergeCartRequest request) {
+        User user = getCurrentUser();
+        Cart cart = getOrCreateCart(user);
+
+        if (request.getItems() != null) {
+            for (AddToCartRequest guestItem : request.getItems()) {
+                Product product = productService.getProductEntityById(guestItem.getProductId());
+                int availableStock = productBatchRepository.findAvailableStockByProductId(product.getProductId());
+
+                CartItem existingItem = findItemByProduct(cart, product.getProductId());
+
+                int newQuantity = guestItem.getQuantity() + (existingItem != null ? existingItem.getQuantity() : 0);
+                newQuantity = Math.min(newQuantity, availableStock);
+
+                if (newQuantity <= 0) continue;
+
+                if (existingItem != null) {
+                    existingItem.setQuantity(newQuantity);
+                    existingItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(newQuantity)));
+                } else {
+                    cart.getCartItems().add(buildCartItem(cart, product, newQuantity));
+                }
+            }
+        }
+
+        cartRepository.save(cart);
+        return cartMapper.toCartResponse(cart);
     }
 
     private Cart getOrCreateCart(User user) {

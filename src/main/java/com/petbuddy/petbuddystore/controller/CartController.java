@@ -73,4 +73,12 @@ public class CartController {
         return ResponseEntity.ok(
                 ApiResponse.success("Cart cleared successfully", null));
     }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(description = "Merge guest cart vào cart của user sau khi login")
+    @PostMapping("/merge")
+    public ResponseEntity<ApiResponse<CartResponse>> mergeCart(@RequestBody MergeCartRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Cart merged successfully", cartService.mergeCart(request)));
+    }
 }
