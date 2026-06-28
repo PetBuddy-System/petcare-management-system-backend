@@ -18,4 +18,5 @@ public class CreateOrderRequest {
     String address;
     String note;
     String voucherCode;
+    String paymentMethod;
 }

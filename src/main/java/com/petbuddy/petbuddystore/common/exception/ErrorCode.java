@@ -80,6 +80,8 @@ public enum ErrorCode {
     PICKING_LIST_NOT_FOUND(5203, "Picking list not found",HttpStatus.NOT_FOUND),
     PICKING_ALREADY_CREATED(5204, "Picking list already created", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_STOCK(5205, "Insufficient stock",HttpStatus.BAD_REQUEST),
+    ORDER_CANCELLED(5206, "Order is cancelled", HttpStatus.CONFLICT),
+    ORDER_ALREADY_PAID(5207, "Order is already paid", HttpStatus.CONFLICT),
 
     VOUCHER_NOT_FOUND(5301, "Voucher not found", HttpStatus.NOT_FOUND),
     VOUCHER_CODE_EXISTED(5302, "Voucher code already exists", HttpStatus.BAD_REQUEST),
@@ -96,6 +98,14 @@ public enum ErrorCode {
     INVALID_DISTANCE(5403,"Invalid distance",HttpStatus.BAD_REQUEST),
     SHIPPING_CONFIG_NOT_FOUND(5404,"Shipping configuration not found",HttpStatus.NOT_FOUND),
     SHIPPING_RULE_OVERLAP(5405,"Shipping rule overlaps with existing rules",HttpStatus.BAD_REQUEST),
+
+    PAYMENT_NOT_FOUND(5501, "Payment not found", HttpStatus.NOT_FOUND),
+    PAYMENT_ALREADY_EXISTS(5502, "Payment already exists", HttpStatus.CONFLICT),
+    PAYMENT_INVALID_METHOD(5503, "Invalid payment", HttpStatus.BAD_REQUEST),
+    PAYMENT_STRIPE_ERROR(5504, "Payment stripe error", HttpStatus.BAD_GATEWAY),
+    PAYMENT_WEBHOOK_INVALID(5505, "Webhook signature invalid", HttpStatus.BAD_REQUEST),
+    PAYMENT_INTENT_NOT_FOUND(5506, "PaymentIntent not found", HttpStatus.NOT_FOUND),
+    PAYMENT_CANNOT_CANCEL(5507, "Payment can not cancelled", HttpStatus.CONFLICT),
 
     FILE_REQUIRED(7001, "File is required", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(7002, "File size is too large", HttpStatus.BAD_REQUEST),
