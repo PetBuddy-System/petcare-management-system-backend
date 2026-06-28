@@ -45,6 +45,9 @@ public class Promotion {
     @Builder.Default
     PromotionStatus status = PromotionStatus.DRAFT;
 
+    @Column(name = "deleted_at")
+    LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "promotion",
             cascade = CascadeType.ALL,
             orphanRemoval = true)

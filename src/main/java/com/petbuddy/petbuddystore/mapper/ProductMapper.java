@@ -4,6 +4,7 @@ import com.petbuddy.petbuddystore.dto.request.ProductCreationRequest;
 import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
 import com.petbuddy.petbuddystore.dto.response.ProductDetailResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
+import com.petbuddy.petbuddystore.dto.response.ProductPromotionResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.model.Product;
 import org.mapstruct.Mapper;
@@ -26,4 +27,6 @@ public interface ProductMapper {
     ProductManagementResponse toManagementResponse(Product product);
 
     ProductDetailResponse toDetailResponse(Product product);
+
+    ProductPromotionResponse toPromotionResponse(Product product);
 }

@@ -8,6 +8,7 @@ import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
 import com.petbuddy.petbuddystore.dto.response.ProductDetailResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
+import com.petbuddy.petbuddystore.dto.response.ProductPromotionResponse;
 import com.petbuddy.petbuddystore.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -66,10 +67,29 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(productService.getProductsForUser(keyword, categoryId, brandName, sortBy, pageable)));
     }
 
+    @GetMapping("/promotion")
+    @Operation(summary = "Get products for promotion selection",
+            description = "Lấy danh sách sản phẩm phục vụ cho chức năng áp dụng khuyến mãi. Hỗ trợ phân trang, tìm kiếm, lọc category, brandName, nearExpiredDays và sort."
+    )
+    public ResponseEntity<ApiResponse<Page<ProductPromotionResponse>>> getProductsForPromotion(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String brandName,
+            @RequestParam(required = false) Integer nearExpiredDays,
+            @RequestParam(defaultValue = "name_asc") String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(ApiResponse.success(
+                productService.getProductsForPromotion(keyword, categoryId, brandName, nearExpiredDays, sortBy, pageable)
+        ));
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     @GetMapping("/management")
     @Operation(summary = "Get products for management",
-            description = "Lấy danh sách sản phẩm cho ADMIN/MANAGER/STAFF. API này có thể hiển thị cả ACTIVE, INACTIVE và DELETED, đồng thời có nhiều field quản lý hơn API user."
+            description = "Lấy danh sách sản phẩm cho ADMIN/MANAGER/STAFF. API này có thể hiển thị cả ACTIVE, INACTIVE, đồng thời có nhiều field quản lý hơn API user."
     )
     public ResponseEntity<ApiResponse<Page<ProductManagementResponse>>> getProductsForManagement(
             @RequestParam(required = false) String keyword,

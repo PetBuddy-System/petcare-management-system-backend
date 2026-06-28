@@ -6,6 +6,7 @@ import com.petbuddy.petbuddystore.dto.request.ProductUpdateRequest;
 import com.petbuddy.petbuddystore.dto.response.ProductDetailResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
+import com.petbuddy.petbuddystore.dto.response.ProductPromotionResponse;
 import com.petbuddy.petbuddystore.model.Category;
 import com.petbuddy.petbuddystore.model.Product;
 import org.springframework.data.domain.Page;
@@ -37,4 +38,6 @@ public interface ProductService {
     Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category, String ingredients, String usageInstructions, List<String> imageUrls);
 
     void updateLastBatchSequence(Product product, long lastBatchSequence);
+
+    Page<ProductPromotionResponse> getProductsForPromotion(String keyword, Long categoryId, String brandName, Integer nearExpiredDays, String sortBy, Pageable pageable);
 }
