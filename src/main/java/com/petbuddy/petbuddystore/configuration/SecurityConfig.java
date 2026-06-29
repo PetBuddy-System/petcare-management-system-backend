@@ -40,6 +40,8 @@ public class SecurityConfig {
             "/pet-buddy/swagger-ui.html",
     };
 
+    private static final String[] STRIPE_WEBHOOK_ENDPOINT = {"/api/payments/webhook"};
+
     private final CustomJwtDecoder customJwtDecoder;
 
     @Bean
@@ -48,6 +50,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS_SWAGGER).permitAll()
+                        .requestMatchers(HttpMethod.POST, STRIPE_WEBHOOK_ENDPOINT).permitAll()
                         .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 ->

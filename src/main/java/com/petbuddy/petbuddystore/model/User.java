@@ -47,9 +47,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     Role role;
 
-    @Column(name = "cart_data", columnDefinition = "JSON")
-    String cartData;
-
     @Enumerated(EnumType.STRING)
     UserStatus status;
 
@@ -70,4 +67,6 @@ public class User {
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, orphanRemoval = true)
     List<StaffSchedule> staffSchedules = new ArrayList<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    Cart cart;
 }

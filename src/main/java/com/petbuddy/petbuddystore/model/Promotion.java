@@ -27,7 +27,6 @@ public class Promotion {
     @Column(name = "promotion_id")
     UUID promotionId;
 
-    @NotBlank(message = "PROMOTION_NAME_REQUIRED")
     @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     String name;
 
@@ -44,6 +43,9 @@ public class Promotion {
     @Column(nullable = false)
     @Builder.Default
     PromotionStatus status = PromotionStatus.DRAFT;
+
+    @Column(name = "deleted_at")
+    LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "promotion",
             cascade = CascadeType.ALL,

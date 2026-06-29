@@ -1,27 +1,25 @@
 package com.petbuddy.petbuddystore.dto.response;
 
+import com.petbuddy.petbuddystore.common.enums.PromotionStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderResponse {
-    Long orderId;
-    String orderCode;
-    String recipientName;
-    String phoneNumber;
-    String address;
-    String status;
-    BigDecimal finalAmount;
+public class PromotionListResponse {
+    UUID promotionId;
+    String name;
+    String description;
+    LocalDateTime startDate;
+    LocalDateTime endDate;
+    PromotionStatus status;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
-    List<OrderDetailResponse> orderDetails;
 }
