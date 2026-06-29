@@ -21,6 +21,7 @@ public class OrderResponse {
     String address;
     String status;
     BigDecimal finalAmount;
+    String clientSecret;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
     List<OrderDetailResponse> orderDetails;

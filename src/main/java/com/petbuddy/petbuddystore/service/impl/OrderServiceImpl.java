@@ -42,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     UserRepository userRepository;
     UserVoucherRepository userVoucherRepository;
     VoucherRepository voucherRepository;
+    PaymentRepository paymentRepository;
     ProductService productService;
     CartService cartService;
     PaymentService paymentService;
@@ -131,7 +132,7 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         userRepository.save(user);
 
-        PaymentInitResponse paymentResponse = paymentService.createPayment(order, method);
+         paymentService.createPayment(order, method);
 
         cartService.clearCart();
         return orderMapper.toOrderResponse(order);

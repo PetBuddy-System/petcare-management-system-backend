@@ -5,7 +5,6 @@ import com.petbuddy.petbuddystore.common.enums.PaymentMethod;
 import com.petbuddy.petbuddystore.common.enums.PaymentStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
-import com.petbuddy.petbuddystore.dto.response.PaymentInitResponse;
 import com.petbuddy.petbuddystore.dto.response.PaymentResponse;
 import com.petbuddy.petbuddystore.mapper.PaymentMapper;
 import com.petbuddy.petbuddystore.model.Order;
@@ -44,7 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
     String webhookSecret;
 
     @Override
-    public PaymentInitResponse createPayment(Order order, PaymentMethod method) {
+    public void createPayment(Order order, PaymentMethod method) {
 
         if (paymentRepository.existsByOrder_OrderId(order.getOrderId())) {
             throw new AppException(ErrorCode.PAYMENT_ALREADY_EXISTS);
@@ -57,20 +56,19 @@ public class PaymentServiceImpl implements PaymentService {
                 .status(PaymentStatus.PENDING)
                 .build();
 
+        order.setPayment(payment);
         if (method == PaymentMethod.CARD) {
-            return createStripePayment(payment);
+            createStripePayment(payment);
         }
 
         paymentRepository.save(payment);
-        return paymentMapper.toPaymentInitResponse(payment);
     }
 
-    private PaymentInitResponse createStripePayment(Payment payment) {
+    private void createStripePayment(Payment payment) {
         try {
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(payment.getAmount().longValue())
                     .setCurrency("vnd")
-                    .addPaymentMethodType("card")
                     .putMetadata("order_id",   String.valueOf(payment.getOrder().getOrderId()))
                     .putMetadata("order_code", payment.getOrder().getOrderCode())
                     .build();
@@ -80,12 +78,6 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setStripePaymentIntentId(intent.getId());
             payment.setStripeClientSecret(intent.getClientSecret());
             payment.setStatus(PaymentStatus.PROCESSING);
-            paymentRepository.save(payment);
-
-            PaymentInitResponse response = paymentMapper.toPaymentInitResponse(payment);
-            response.setClientSecret(intent.getClientSecret());
-            return response;
-
         } catch (StripeException ex) {
             log.error("Stripe error khi tạo PaymentIntent cho order {}: {}",
                     payment.getOrder().getOrderId(), ex.getMessage());
@@ -106,7 +98,7 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("Nhận Stripe webhook event: {}", event.getType());
 
         switch (event.getType()) {
-            case "payment_intent.succeeded"       -> handlePaymentSucceeded(event);
+//            case "payment_intent.succeeded"       -> handlePaymentSucceeded(event);
             case "payment_intent.payment_failed"  -> handlePaymentFailed(event);
             case "payment_intent.canceled"        -> handlePaymentCanceled(event);
             default -> log.debug("Bỏ qua event không xử lý: {}", event.getType());
