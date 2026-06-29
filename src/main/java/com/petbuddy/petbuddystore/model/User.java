@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.model;
 
+import com.petbuddy.petbuddystore.common.enums.AuthProvider;
 import com.petbuddy.petbuddystore.common.enums.Role;
 import com.petbuddy.petbuddystore.common.enums.UserStatus;
 import jakarta.persistence.*;
@@ -51,6 +52,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     UserStatus status;
+
+    @Column(name = "auth_provider")
+    @Enumerated(EnumType.STRING)
+    AuthProvider authProvider;
 
     @CreationTimestamp
     @Column(updatable = false)
