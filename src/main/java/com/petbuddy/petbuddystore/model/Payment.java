@@ -43,7 +43,6 @@ public class Payment {
     @Column(name = "stripe_payment_intent_id", unique = true)
     String stripePaymentIntentId;
 
-
     @Column(name = "stripe_client_secret")
     String stripeClientSecret;
 
@@ -57,5 +56,4 @@ public class Payment {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
-
 }

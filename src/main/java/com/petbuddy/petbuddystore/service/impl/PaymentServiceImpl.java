@@ -99,6 +99,16 @@ public class PaymentServiceImpl implements PaymentService {
 
         switch (event.getType()) {
 //            case "payment_intent.succeeded"       -> handlePaymentSucceeded(event);
+            case "payment_intent.succeeded" -> {
+                log.info(">>> Bắt đầu xử lý payment_intent.succeeded");
+                try {
+                    handlePaymentSucceeded(event);
+                    log.info(">>> Xử lý thành công");
+                } catch (Exception e) {
+                    log.error(">>> LỖI: {}", e.getMessage(), e);
+                    throw e;
+                }
+            }
             case "payment_intent.payment_failed"  -> handlePaymentFailed(event);
             case "payment_intent.canceled"        -> handlePaymentCanceled(event);
             default -> log.debug("Bỏ qua event không xử lý: {}", event.getType());
@@ -155,10 +165,23 @@ public class PaymentServiceImpl implements PaymentService {
 
 
     private String extractPaymentIntentId(Event event) {
-        return event.getDataObjectDeserializer()
-                .getObject()
-                .map(obj -> ((PaymentIntent) obj).getId())
-                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND));
+        var deserializer = event.getDataObjectDeserializer();
+
+        if (deserializer.getObject().isPresent()) {
+            return ((PaymentIntent) deserializer.getObject().get()).getId();
+        }
+
+        log.warn("Dùng raw JSON fallback cho event: {}", event.getId());
+        try {
+            String rawJson = deserializer.getRawJson();
+            com.google.gson.JsonObject jsonObject = com.google.gson.JsonParser
+                    .parseString(rawJson)
+                    .getAsJsonObject();
+            return jsonObject.get("id").getAsString();
+        } catch (Exception e) {
+            log.error("Không thể parse PaymentIntent id: {}", e.getMessage());
+            throw new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND);
+        }
     }
 
     private Payment findByStripeIntentId(String intentId) {
