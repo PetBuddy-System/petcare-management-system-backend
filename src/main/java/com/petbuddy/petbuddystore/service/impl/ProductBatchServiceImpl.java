@@ -11,6 +11,7 @@ import com.petbuddy.petbuddystore.dto.response.ProductBatchResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductImportResponse;
 import com.petbuddy.petbuddystore.mapper.ProductBatchMapper;
 import com.petbuddy.petbuddystore.model.Category;
+import com.petbuddy.petbuddystore.model.MediaFile;
 import com.petbuddy.petbuddystore.model.Product;
 import com.petbuddy.petbuddystore.model.ProductBatch;
 import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
@@ -179,10 +180,10 @@ public class ProductBatchServiceImpl implements ProductBatchService {
             for (ImportRowRequest rowData : validRows) {
                 Product product = productService.getProductEntityByName(rowData.getName());
                 if (product == null) {
-                    List<String> imageUrls = uploadImages(rowData.getImages(), rowData.getName());
+                    List<MediaFile> mediaFiles = uploadImages(rowData.getImages(), rowData.getName());
                     product = productService.createProductFromImport(
                             rowData.getName(), rowData.getDescription(), rowData.getPrice(), rowData.getBrandName(),
-                            rowData.getCategory(), rowData.getIngredients(), rowData.getUsageInstructions(), imageUrls);
+                            rowData.getCategory(), rowData.getIngredients(), rowData.getUsageInstructions(), mediaFiles);
                     createdProducts++;
                 }
 
@@ -385,17 +386,18 @@ public class ProductBatchServiceImpl implements ProductBatchService {
         if (fileName == null || !fileName.toLowerCase().endsWith(".xlsx")) throw new AppException(ErrorCode.INVALID_FILE_TYPE);
     }
 
-    private List<String> uploadImages(List<byte[]> imagesData, String productName) {
+    private List<MediaFile> uploadImages(List<byte[]> imagesData, String productName) {
         if (imagesData == null || imagesData.isEmpty()) return Collections.emptyList();
-        List<String> urls = new ArrayList<>();
+        List<MediaFile> mediaFiles = new ArrayList<>();
         for (byte[] data : imagesData) {
             try {
-                urls.add(fileService.uploadProductImageFromBytes(data, "image/jpeg"));
+                MediaFile mediaFile = fileService.uploadProductImageFromBytes(data);
+                mediaFiles.add(mediaFile);
             } catch (Exception e) {
                 log.warn("Skipped image upload for '{}': {}", productName, e.getMessage());
             }
         }
-        return urls;
+        return mediaFiles;
     }
 
     private Map<String, byte[]> readZipEntries(byte[] excelBytes) throws Exception {

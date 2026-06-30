@@ -12,10 +12,7 @@ import com.petbuddy.petbuddystore.dto.response.ProductManagementResponse;
 import com.petbuddy.petbuddystore.dto.response.ProductPublicResponse;
 import com.petbuddy.petbuddystore.mapper.ProductMapper;
 import com.petbuddy.petbuddystore.mapper.PromotionMapper;
-import com.petbuddy.petbuddystore.model.Category;
-import com.petbuddy.petbuddystore.model.Product;
-import com.petbuddy.petbuddystore.model.ProductBatch;
-import com.petbuddy.petbuddystore.model.PromotionDetail;
+import com.petbuddy.petbuddystore.model.*;
 import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
 import com.petbuddy.petbuddystore.repository.ProductRepository;
 import com.petbuddy.petbuddystore.repository.PromotionDetailRepository;
@@ -65,7 +62,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productMapper.toProduct(request);
         product.setProductCode(generateProductCode());
         product.setCategory(category);
-        uploadProductImages(product, images);
+        uploadProductMediaFiles(product, images);
         return productMapper.toManagementResponse(productRepository.save(product));
     }
 
@@ -88,7 +85,10 @@ public class ProductServiceImpl implements ProductService {
         if (request.getStatus() != null) {
             updateStatus(product, request.getStatus());
         }
-        uploadProductImages(product, images);
+
+        // SỬA: Upload images và set mediaFiles
+        uploadProductMediaFiles(product, images);
+
         return productMapper.toManagementResponse(productRepository.save(product));
     }
 
@@ -118,7 +118,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category, String ingredients, String usageInstructions, List<String> imageUrls) {
+    public Product createProductFromImport(String name, String description, BigDecimal price, String brandName, Category category, String ingredients, String usageInstructions, List<MediaFile> mediaFiles) {
         Product product = Product.builder()
                 .name(name.trim())
                 .description(description)
@@ -129,8 +129,13 @@ public class ProductServiceImpl implements ProductService {
                 .usageInstructions(usageInstructions)
                 .productCode(generateProductCode())
                 .status(ProductStatus.ACTIVE)
-                .imageUrls(imageUrls)
+                .mediaFiles(mediaFiles != null ? mediaFiles : new ArrayList<>())
                 .build();
+
+        if (mediaFiles != null) {
+            mediaFiles.forEach(mf -> mf.setProduct(product));
+        }
+
         return productRepository.save(product);
     }
 
@@ -180,7 +185,6 @@ public class ProductServiceImpl implements ProductService {
         });
         response.setTotalStock(getTotalStock(product));
         return setPromotionInfo(response, product);
-
     }
 
     @Override
@@ -283,17 +287,24 @@ public class ProductServiceImpl implements ProductService {
                 .count();
     }
 
-    private void uploadProductImages(Product product, List<MultipartFile> images) {
+    private void uploadProductMediaFiles(Product product, List<MultipartFile> images) {
         if (images == null || images.isEmpty()) return;
         if (images.size() > 4) {
             throw new AppException(ErrorCode.PRODUCT_IMAGE_LIMIT_EXCEEDED);
         }
-        List<String> imageUrls = images.stream()
+
+        List<MediaFile> mediaFiles = images.stream()
                 .filter(img -> img != null && !img.isEmpty())
                 .map(fileService::uploadProductImage)
-                .collect(Collectors.toList());
-        if (!imageUrls.isEmpty()) {
-            product.setImageUrls(imageUrls);
+                .toList();
+
+        if (!mediaFiles.isEmpty()) {
+            mediaFiles.forEach(mf -> mf.setProduct(product));
+
+            if (product.getMediaFiles() == null) {
+                product.setMediaFiles(new ArrayList<>());
+            }
+            product.getMediaFiles().addAll(mediaFiles);
         }
     }
 

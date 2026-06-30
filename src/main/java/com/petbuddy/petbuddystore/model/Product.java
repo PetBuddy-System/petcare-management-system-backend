@@ -67,8 +67,11 @@ public class Product {
     @JoinColumn(name = "category_id")
     Category category;
 
+//    @Builder.Default
+//    List<String> imageUrls = new ArrayList<>();
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    List<String> imageUrls = new ArrayList<>();
+    List<MediaFile> mediaFiles = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
