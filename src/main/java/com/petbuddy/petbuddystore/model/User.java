@@ -1,5 +1,6 @@
 package com.petbuddy.petbuddystore.model;
 
+import com.petbuddy.petbuddystore.common.enums.AuthProvider;
 import com.petbuddy.petbuddystore.common.enums.Role;
 import com.petbuddy.petbuddystore.common.enums.UserStatus;
 import jakarta.persistence.*;
@@ -46,11 +47,12 @@ public class User {
     @Enumerated(EnumType.STRING)
     Role role;
 
-    @Column(name = "cart_data", columnDefinition = "JSON")
-    String cartData;
-
     @Enumerated(EnumType.STRING)
     UserStatus status;
+
+    @Column(name = "auth_provider")
+    @Enumerated(EnumType.STRING)
+    AuthProvider authProvider;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -65,4 +67,6 @@ public class User {
     @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, orphanRemoval = true)
     List<StaffSchedule> staffSchedules = new ArrayList<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    Cart cart;
 }

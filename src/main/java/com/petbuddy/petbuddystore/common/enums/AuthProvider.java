@@ -1,6 +1,6 @@
 package com.petbuddy.petbuddystore.common.enums;
 
-public enum PaymentMethod {
-    CASH,
-    CARD,
+public enum AuthProvider {
+    LOCAL,
+    GOOGLE
 }
