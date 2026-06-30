@@ -7,10 +7,11 @@ import com.petbuddy.petbuddystore.model.OrderDetail;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(uses = {PaymentMapper.class},componentModel = "spring")
 public interface OrderMapper {
 
     @Mapping(target = "clientSecret", source = "payment.stripeClientSecret")
+    @Mapping(target = "payment", source = "payment")
     OrderResponse toOrderResponse(Order order);
     OrderDetailResponse toOrderDetailResponse(OrderDetail orderDetail);
 }

@@ -1,6 +1,5 @@
 package com.petbuddy.petbuddystore.service.impl;
 
-import com.petbuddy.petbuddystore.common.enums.OrderStatus;
 import com.petbuddy.petbuddystore.common.enums.PaymentMethod;
 import com.petbuddy.petbuddystore.common.enums.PaymentStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
@@ -18,7 +17,7 @@ import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
 import com.stripe.param.PaymentIntentCreateParams;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,7 +30,6 @@ import java.time.LocalDateTime;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentServiceImpl implements PaymentService {
 
@@ -44,7 +42,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void createPayment(Order order, PaymentMethod method) {
-
         if (paymentRepository.existsByOrder_OrderId(order.getOrderId())) {
             throw new AppException(ErrorCode.PAYMENT_ALREADY_EXISTS);
         }
@@ -57,12 +54,64 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         order.setPayment(payment);
+        paymentRepository.save(payment);
+
         if (method == PaymentMethod.CARD) {
             createStripePayment(payment);
         }
 
         paymentRepository.save(payment);
     }
+
+
+
+    @Transactional
+    @Override
+    public void handleWebhook(String payload, String sigHeader) {
+        Event event;
+        try {
+            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+        } catch (SignatureVerificationException ex) {
+            log.warn("Webhook signature không hợp lệ: {}", ex.getMessage());
+            throw new AppException(ErrorCode.PAYMENT_WEBHOOK_INVALID);
+        }
+
+        log.info("Nhận Stripe webhook event: {}", event.getType());
+
+        switch (event.getType()) {
+            case "payment_intent.succeeded"       -> handlePaymentSucceeded(event);
+            case "payment_intent.payment_failed"  -> handlePaymentFailed(event);
+            case "payment_intent.canceled"        -> handlePaymentCanceled(event);
+            default -> log.debug("Bỏ qua event không xử lý: {}", event.getType());
+        }
+    }
+
+    private void handlePaymentSucceeded(Event event) {
+        String intentId = extractPaymentIntentId(event);
+        Payment payment = findByStripeIntentId(intentId);
+
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        Order order = payment.getOrder();
+        orderRepository.save(order);
+
+        log.info("Thanh toán thành công: PaymentIntent={}, Order={}",
+                intentId, order.getOrderCode());
+    }
+
+    @Transactional
+    @Override
+    public PaymentResponse getPaymentByOrderId(Long orderId) {
+        if (!orderRepository.existsById(orderId)) {
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+        }
+        Payment payment = paymentRepository.findByOrder_OrderId(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
 
     private void createStripePayment(Payment payment) {
         try {
@@ -85,50 +134,32 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    @Override
-    public void handleWebhook(String payload, String sigHeader) {
-        Event event;
+    private String extractPaymentIntentId(Event event) {
+        var deserializer = event.getDataObjectDeserializer();
+
+        log.info("Event type: {}, deserializer present: {}",
+                event.getType(), deserializer.getObject().isPresent());
+
+        if (deserializer.getObject().isPresent()) {
+            String id = ((PaymentIntent) deserializer.getObject().get()).getId();
+            log.info("Extracted PaymentIntent ID (object): {}", id);
+            return id;
+        }
+
+        log.warn("Dùng raw JSON fallback cho event: {}", event.getId());
         try {
-            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
-        } catch (SignatureVerificationException ex) {
-            log.warn("Webhook signature không hợp lệ: {}", ex.getMessage());
-            throw new AppException(ErrorCode.PAYMENT_WEBHOOK_INVALID);
+            String rawJson = deserializer.getRawJson();
+            log.info("Raw JSON: {}", rawJson); // ← xem raw JSON có field "id" không
+            com.google.gson.JsonObject jsonObject = com.google.gson.JsonParser
+                    .parseString(rawJson)
+                    .getAsJsonObject();
+            String id = jsonObject.get("id").getAsString();
+            log.info("Extracted PaymentIntent ID (raw): {}", id);
+            return id;
+        } catch (Exception e) {
+            log.error("Không thể parse PaymentIntent id: {}", e.getMessage());
+            throw new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND);
         }
-
-        log.info("Nhận Stripe webhook event: {}", event.getType());
-
-        switch (event.getType()) {
-//            case "payment_intent.succeeded"       -> handlePaymentSucceeded(event);
-            case "payment_intent.succeeded" -> {
-                log.info(">>> Bắt đầu xử lý payment_intent.succeeded");
-                try {
-                    handlePaymentSucceeded(event);
-                    log.info(">>> Xử lý thành công");
-                } catch (Exception e) {
-                    log.error(">>> LỖI: {}", e.getMessage(), e);
-                    throw e;
-                }
-            }
-            case "payment_intent.payment_failed"  -> handlePaymentFailed(event);
-            case "payment_intent.canceled"        -> handlePaymentCanceled(event);
-            default -> log.debug("Bỏ qua event không xử lý: {}", event.getType());
-        }
-    }
-
-    private void handlePaymentSucceeded(Event event) {
-        String intentId = extractPaymentIntentId(event);
-        Payment payment = findByStripeIntentId(intentId);
-
-        payment.setStatus(PaymentStatus.PAID);
-        payment.setPaidAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-
-        Order order = payment.getOrder();
-        order.setStatus(OrderStatus.CONFIRMED);
-        orderRepository.save(order);
-
-        log.info("Thanh toán thành công: PaymentIntent={}, Order={}",
-                intentId, order.getOrderCode());
     }
 
     private void handlePaymentFailed(Event event) {
@@ -150,38 +181,6 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(payment);
 
         log.info("PaymentIntent bị huỷ: {}", intentId);
-    }
-
-
-    @Override
-    public PaymentResponse getPaymentByOrderId(Long orderId) {
-        if (!orderRepository.existsById(orderId)) {
-            throw new AppException(ErrorCode.ORDER_NOT_FOUND);
-        }
-        Payment payment = paymentRepository.findByOrder_OrderId(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
-        return paymentMapper.toPaymentResponse(payment);
-    }
-
-
-    private String extractPaymentIntentId(Event event) {
-        var deserializer = event.getDataObjectDeserializer();
-
-        if (deserializer.getObject().isPresent()) {
-            return ((PaymentIntent) deserializer.getObject().get()).getId();
-        }
-
-        log.warn("Dùng raw JSON fallback cho event: {}", event.getId());
-        try {
-            String rawJson = deserializer.getRawJson();
-            com.google.gson.JsonObject jsonObject = com.google.gson.JsonParser
-                    .parseString(rawJson)
-                    .getAsJsonObject();
-            return jsonObject.get("id").getAsString();
-        } catch (Exception e) {
-            log.error("Không thể parse PaymentIntent id: {}", e.getMessage());
-            throw new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND);
-        }
     }
 
     private Payment findByStripeIntentId(String intentId) {
