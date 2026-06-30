@@ -9,6 +9,7 @@ import com.petbuddy.petbuddystore.dto.request.MergeCartRequest;
 import com.petbuddy.petbuddystore.dto.request.UpdateCartItemRequest;
 import com.petbuddy.petbuddystore.dto.response.CartResponse;
 import com.petbuddy.petbuddystore.mapper.CartMapper;
+import com.petbuddy.petbuddystore.model.MediaFile;
 import com.petbuddy.petbuddystore.model.Product;
 import com.petbuddy.petbuddystore.model.User;
 import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
@@ -238,9 +239,9 @@ public class CartServiceImpl implements CartService {
         return cartMapper.toCartResponse(cartData);
     }
     private String getFirstImage(Product product) {
-        if (product == null || product.getImageUrls() == null || product.getImageUrls().isEmpty()) {
+        if (product == null || product.getMediaFiles() == null || product.getMediaFiles().isEmpty()) {
             return null;
         }
-        return product.getImageUrls().getFirst();
+        return product.getMediaFiles().getFirst().getFileUrl();
     }
 }

@@ -85,7 +85,7 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(product)
                     .productName(product.getName())
-                    .productImage(product.getImageUrls().getFirst())
+                    .productImage(getFirstImage(product))
                     .unitPrice(item.getPrice())
                     .quantity(item.getQuantity())
                     .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -238,7 +238,7 @@ public class OrderServiceImpl implements OrderService {
             result.add(PickingItemResponse.builder()
                             .productId(batch.getProduct().getProductId())
                             .name(batch.getProduct().getName())
-                            .imageUrl(batch.getProduct().getImageUrls().getFirst())
+                            .imageUrl(getFirstImage(batch.getProduct()))
                             .expiryDate(batch.getExpiryDate())
                             .quantityToPick(picked)
                             .build()
@@ -346,5 +346,12 @@ public class OrderServiceImpl implements OrderService {
         if (voucher.getPerUserLimit() != null && userUsedCount >= voucher.getPerUserLimit()) {
             throw new AppException(ErrorCode.VOUCHER_USER_LIMIT_EXCEEDED);
         }
+    }
+
+    private String getFirstImage(Product product) {
+        if (product == null || product.getMediaFiles() == null || product.getMediaFiles().isEmpty()) {
+            return null;
+        }
+        return product.getMediaFiles().getFirst().getFileUrl();
     }
 }

@@ -34,9 +34,7 @@ public class FileServiceImpl implements FileService {
     String bucketName;
 
     @Override
-    public String uploadProductImage(MultipartFile file) {
-        return uploadToS3(file, "products");
-    }
+    public MediaFile uploadProductImage(MultipartFile file) {return uploadImage(file, MediaPurpose.PRODUCT, "products");}
 
     @Override
     public MediaFile uploadPetImage(MultipartFile file) {
@@ -80,38 +78,44 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public String uploadProductImageFromBytes(byte[] bytes, String mimeType) {
-        validateBytes(bytes, mimeType);
-        String extension = getExtensionFromMimeType(mimeType);
-        String imageKey = "products/" + UUID.randomUUID() + "." + extension;
-        return uploadToS3(bytes, mimeType, imageKey);
+    public MediaFile uploadProductImageFromBytes(byte[] bytes) {
+        String detectedMimeType = detectMimeType(bytes);
+        if (detectedMimeType == null) {throw new AppException(ErrorCode.INVALID_FILE_TYPE);}
+
+        validateBytes(bytes, detectedMimeType);
+        String extension = getExtensionFromMimeType(detectedMimeType);
+        String fileKey = "products/" + UUID.randomUUID() + "." + extension;
+        String fileUrl = buildFileUrl(fileKey);
+
+        uploadToS3(bytes, detectedMimeType, fileKey);
+
+        return MediaFile.builder()
+                .fileUrl(fileUrl)
+                .fileKey(fileKey)
+                .fileSize((long) bytes.length)
+                .fileType(FileType.IMAGE)
+                .mediaPurpose(MediaPurpose.PRODUCT)
+                .mediaStatus(MediaStatus.ACTIVE)
+                .build();
     }
 
-
-    private String uploadToS3(MultipartFile file, String folder) {
-        validateFile(file);
-
-        try {
-            String imageKey = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
-
-            s3Client.putObject(
-                    PutObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(imageKey)
-                            .contentType(file.getContentType())
-                            .build(),
-                    RequestBody.fromBytes(file.getBytes())
-            );
-
-            return "https://" + bucketName + ".s3.amazonaws.com/" + imageKey;
-
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new AppException(ErrorCode.UPLOAD_FAILED);
+    private String detectMimeType(byte[] data) {
+        if (data == null || data.length < 4) return null;
+        if (data[0] == (byte)0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
+            return "image/png";
         }
-    }
-
-    private String buildFileUrl(String fileKey){
+        if (data[0] == (byte)0xFF && data[1] == (byte)0xD8 && data[2] == (byte)0xFF) {
+            return "image/jpeg";
+        }
+        if (data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+                data.length > 12 && data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50) {
+            return "image/webp";
+        }
+        if (data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38) {
+            return "image/gif";
+        }
+        return null;
+    }    private String buildFileUrl(String fileKey){
         return "https://" + bucketName + ".s3.amazonaws.com/" + fileKey;
     }
 
