@@ -22,9 +22,11 @@ public class OrderResponse {
     String note;
     String status;
     BigDecimal finalAmount;
+    BigDecimal shippingFee;
     String clientSecret;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
     List<OrderDetailResponse> orderDetails;
     PaymentResponse payment;
+    VoucherResponse voucher;
 }

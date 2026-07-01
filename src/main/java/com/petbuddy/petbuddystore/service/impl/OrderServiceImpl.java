@@ -8,6 +8,7 @@ import com.petbuddy.petbuddystore.dto.response.*;
 import com.petbuddy.petbuddystore.mapper.OrderMapper;
 import com.petbuddy.petbuddystore.model.*;
 import com.petbuddy.petbuddystore.repository.*;
+import com.petbuddy.petbuddystore.repository.PaymentRepository;
 import com.petbuddy.petbuddystore.service.CartService;
 import com.petbuddy.petbuddystore.service.OrderService;
 import com.petbuddy.petbuddystore.service.PaymentService;
@@ -46,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
     CartService cartService;
     PaymentService paymentService;
     OrderMapper orderMapper;
+    PaymentRepository paymentRepository;
 
     @Override
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -64,6 +66,10 @@ public class OrderServiceImpl implements OrderService {
             throw new AppException(ErrorCode.CART_EMPTY);
         }
 
+        if (request.getShippingFee() == null || request.getShippingFee().compareTo(BigDecimal.ZERO) < 0) {
+            throw new AppException(ErrorCode.INVALID_SHIPPING_FEE);
+        }
+
         Order order = Order.builder()
                 .orderCode(generateOrderCode())
                 .user(user)
@@ -71,6 +77,7 @@ public class OrderServiceImpl implements OrderService {
                 .phoneNumber(request.getPhoneNumber())
                 .address(request.getAddress())
                 .note(request.getNote())
+                .shippingFee(request.getShippingFee())
                 .status(OrderStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -89,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
                     .order(order)
                     .product(product)
                     .productName(product.getName())
-                    .productImage(product.getImageUrls().getFirst())
+                    .productImage(getFirstImage(product))
                     .unitPrice(item.getPrice())
                     .quantity(item.getQuantity())
                     .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -144,8 +151,11 @@ public class OrderServiceImpl implements OrderService {
                 if (newStatus != OrderStatus.CONFIRMED && newStatus != OrderStatus.CANCELLED)
                     throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
                 if (newStatus == OrderStatus.CONFIRMED) {
-                    for (OrderDetail detail : order.getOrderDetails()) {
-                        deductStockByFefo(detail.getProduct().getProductId(), detail.getQuantity());
+                    PaymentMethod method = order.getPayment().getPaymentMethod();
+                    if (method == PaymentMethod.CASH) {
+                        paymentService.markPaymentSucceeded(order);
+                    } else if (order.getPayment().getStatus() != PaymentStatus.PAID) {
+                        throw new AppException(ErrorCode.PAYMENT_NOT_COMPLETED);
                     }
                 }
             }
@@ -164,10 +174,15 @@ public class OrderServiceImpl implements OrderService {
             case DELIVERED -> {
                 if (newStatus != OrderStatus.COMPLETED)
                     throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+                if(order.getPayment().getStatus() != PaymentStatus.PAID){
+                    Payment payment = order.getPayment();
+                    payment.setStatus(PaymentStatus.PAID);
+                    payment.setPaidAt(LocalDateTime.now());
+                    paymentRepository.save(payment);
+                }
             }
             case COMPLETED, CANCELLED -> throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
         }
-
         order.setStatus(newStatus);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
@@ -224,7 +239,7 @@ public class OrderServiceImpl implements OrderService {
             result.add(PickingItemResponse.builder()
                     .productId(batch.getProduct().getProductId())
                     .name(batch.getProduct().getName())
-                    .imageUrl(batch.getProduct().getImageUrls().getFirst())
+                    .imageUrl(getFirstImage(batch.getProduct()))
                     .expiryDate(batch.getExpiryDate())
                     .quantityToPick(picked)
                     .build());
@@ -235,22 +250,6 @@ public class OrderServiceImpl implements OrderService {
         return result;
     }
 
-    private void deductStockByFefo(UUID productId, int quantity) {
-        List<ProductBatch> batches = productBatchRepository.findActiveBatchesForUpdate(productId, ProductStatus.ACTIVE);
-        List<ProductBatch> updatedBatches = new ArrayList<>();
-        int remaining = quantity;
-
-        for (ProductBatch batch : batches) {
-            if (remaining <= 0) break;
-            int picked = Math.min(batch.getStockQuantity(), remaining);
-            batch.setStockQuantity(batch.getStockQuantity() - picked);
-            updatedBatches.add(batch);
-            remaining -= picked;
-        }
-
-        if (remaining > 0) throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
-        productBatchRepository.saveAll(updatedBatches);
-    }
 
     private List<ProductBatch> getActiveBatchesByFefo(UUID productId) {
         return productBatchRepository
@@ -311,5 +310,12 @@ public class OrderServiceImpl implements OrderService {
         long userUsedCount = userVoucherRepository.countByUserAndVoucher(user, voucher);
         if (voucher.getPerUserLimit() != null && userUsedCount >= voucher.getPerUserLimit())
             throw new AppException(ErrorCode.VOUCHER_USER_LIMIT_EXCEEDED);
+    }
+
+    private String getFirstImage(Product product) {
+        if (product == null || product.getMediaFiles() == null || product.getMediaFiles().isEmpty()) {
+            return null;
+        }
+        return product.getMediaFiles().getFirst().getFileUrl();
     }
 }

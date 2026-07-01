@@ -2,14 +2,18 @@ package com.petbuddy.petbuddystore.service.impl;
 
 import com.petbuddy.petbuddystore.common.enums.PaymentMethod;
 import com.petbuddy.petbuddystore.common.enums.PaymentStatus;
+import com.petbuddy.petbuddystore.common.enums.ProductStatus;
 import com.petbuddy.petbuddystore.common.exception.AppException;
 import com.petbuddy.petbuddystore.common.exception.ErrorCode;
 import com.petbuddy.petbuddystore.dto.response.PaymentResponse;
 import com.petbuddy.petbuddystore.mapper.PaymentMapper;
 import com.petbuddy.petbuddystore.model.Order;
+import com.petbuddy.petbuddystore.model.OrderDetail;
 import com.petbuddy.petbuddystore.model.Payment;
+import com.petbuddy.petbuddystore.model.ProductBatch;
 import com.petbuddy.petbuddystore.repository.OrderRepository;
 import com.petbuddy.petbuddystore.repository.PaymentRepository;
+import com.petbuddy.petbuddystore.repository.ProductBatchRepository;
 import com.petbuddy.petbuddystore.service.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
@@ -26,6 +30,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -35,6 +42,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     final PaymentRepository paymentRepository;
     final OrderRepository orderRepository;
+    final ProductBatchRepository productBatchRepository;
     final PaymentMapper paymentMapper;
 
     @Value("${webhook.secret-key}")
@@ -86,21 +94,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private void handlePaymentSucceeded(Event event) {
-        String intentId = extractPaymentIntentId(event);
-        Payment payment = findByStripeIntentId(intentId);
-
-        payment.setStatus(PaymentStatus.PAID);
-        payment.setPaidAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-
-        Order order = payment.getOrder();
-        orderRepository.save(order);
-
-        log.info("Thanh toán thành công: PaymentIntent={}, Order={}",
-                intentId, order.getOrderCode());
-    }
-
     @Transactional
     @Override
     public PaymentResponse getPaymentByOrderId(Long orderId) {
@@ -112,6 +105,63 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentMapper.toPaymentResponse(payment);
     }
 
+    @Override
+    public void markPaymentSucceeded(Order order) {
+        Payment payment = order.getPayment();
+        if (payment.getStatus() == PaymentStatus.PAID) {
+            return;
+        }
+        payment.setStatus(PaymentStatus.PAID);
+        for (OrderDetail detail : order.getOrderDetails()) {
+            deductStockByFefo(detail.getProduct().getProductId(), detail.getQuantity());
+        }
+        paymentRepository.save(payment);
+    }
+
+    private void deductStockByFefo(UUID productId, int quantity) {
+        List<ProductBatch> batches = productBatchRepository.findActiveBatchesForUpdate(productId, ProductStatus.ACTIVE);
+        List<ProductBatch> updatedBatches = new ArrayList<>();
+        int remaining = quantity;
+
+        for (ProductBatch batch : batches) {
+            if (remaining <= 0) break;
+            int picked = Math.min(batch.getStockQuantity(), remaining);
+            batch.setStockQuantity(batch.getStockQuantity() - picked);
+            updatedBatches.add(batch);
+            remaining -= picked;
+        }
+
+        if (remaining > 0) throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        productBatchRepository.saveAll(updatedBatches);
+    }
+
+    private String extractPaymentIntentId(Event event) {
+        var deserializer = event.getDataObjectDeserializer();
+
+        log.info("Event type: {}, deserializer present: {}",
+                event.getType(), deserializer.getObject().isPresent());
+
+        if (deserializer.getObject().isPresent()) {
+            String id = ((PaymentIntent) deserializer.getObject().get()).getId();
+            log.info("Extracted PaymentIntent ID (object): {}", id);
+            return id;
+        }
+
+        log.warn("Dùng raw JSON fallback cho event: {}", event.getId());
+        try {
+            String rawJson = deserializer.getRawJson();
+            log.info("Raw JSON: {}", rawJson);
+            com.google.gson.JsonObject jsonObject = com.google.gson.JsonParser
+                    .parseString(rawJson)
+                    .getAsJsonObject();
+            String id = jsonObject.get("id").getAsString();
+            log.info("Extracted PaymentIntent ID (raw): {}", id);
+            return id;
+        } catch (Exception e) {
+            log.error("Không thể parse PaymentIntent id: {}", e.getMessage());
+            throw new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND);
+        }
+    }
 
     private void createStripePayment(Payment payment) {
         try {
@@ -134,32 +184,22 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private String extractPaymentIntentId(Event event) {
-        var deserializer = event.getDataObjectDeserializer();
+    private void handlePaymentSucceeded(Event event) {
+        String intentId = extractPaymentIntentId(event);
+        Payment payment = findByStripeIntentId(intentId);
 
-        log.info("Event type: {}, deserializer present: {}",
-                event.getType(), deserializer.getObject().isPresent());
-
-        if (deserializer.getObject().isPresent()) {
-            String id = ((PaymentIntent) deserializer.getObject().get()).getId();
-            log.info("Extracted PaymentIntent ID (object): {}", id);
-            return id;
+        if (payment.getStatus() == PaymentStatus.PAID) {
+            log.info("Webhook trùng lặp, bỏ qua: PaymentIntent={}", intentId);
+            return;
         }
 
-        log.warn("Dùng raw JSON fallback cho event: {}", event.getId());
-        try {
-            String rawJson = deserializer.getRawJson();
-            log.info("Raw JSON: {}", rawJson); // ← xem raw JSON có field "id" không
-            com.google.gson.JsonObject jsonObject = com.google.gson.JsonParser
-                    .parseString(rawJson)
-                    .getAsJsonObject();
-            String id = jsonObject.get("id").getAsString();
-            log.info("Extracted PaymentIntent ID (raw): {}", id);
-            return id;
-        } catch (Exception e) {
-            log.error("Không thể parse PaymentIntent id: {}", e.getMessage());
-            throw new AppException(ErrorCode.PAYMENT_INTENT_NOT_FOUND);
-        }
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        Order order = payment.getOrder();
+
+        log.info("Thanh toán thành công: PaymentIntent={}, Order={}", intentId, order.getOrderCode());
     }
 
     private void handlePaymentFailed(Event event) {
